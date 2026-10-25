@@ -27,7 +27,24 @@ Conformidade (tolerância do lote, 10% e 5%), espessura média e desvio-padrão,
 
 ## Resultados do artigo
 
-A pasta `resultados/` traz a simulação do PCP padrão (`pcp_padrao.json`, semente 1), com 26.000 chapas em cinco lotes, comparando o corte mecanizado e o corte automático com gêmeo:
+A simulação do PCP padrão (`pcp_padrao.json`, semente 1), com 26.000 chapas em cinco lotes, compara o corte mecanizado e o corte automático com gêmeo.
+
+### Entrega dos objetivos da visão de Negócio
+
+| Objetivo | Indicador | Mecanizado | Com gêmeo | Variação |
+|---|---|---:|---:|---:|
+| Atender a especificação mais estreita do negócio | Chapas na faixa do negócio | 91,10% | 99,99% | **+8,89 p.p.** |
+| Respeitar a norma | Chapas dentro da tolerância da norma | 98,36% | 100,00% | **+1,63 p.p.** |
+| Melhorar o alinhamento entre chapas | Desvio-padrão da espessura final por lote | 0,26 a 0,28 mm | 0,17 a 0,19 mm | **−31,8%** (média) |
+| Reduzir camadas por chapa | Voltas por chapa | 28,2 | 26,9 | **−4,8%** |
+| Reduzir o consumo de material | Material frente ao corte mecanizado | referência | 1.297 chapas economizadas | **−4,8%** |
+| Reduzir o tempo de execução | Tempo médio de formação por chapa | 42,3 s | 40,3 s | **−4,8%** |
+| Aumentar a produtividade e o lucro | Chapas por hora | 85,0 | 89,3 | **+5,0%** |
+| Monitorar e detectar falhas | Falhas detectadas e tempo até a detecção | - | 9 de 9, de 0,5 s a 60 s | - |
+
+Relatório completo, para abrir no navegador: <https://edcasag.github.io/gemeo-ciaca/resultados/relatorio_simulacao_padrao.html>
+
+### Arquivos de resultados
 
 | Arquivo | Conteúdo |
 |---|---|

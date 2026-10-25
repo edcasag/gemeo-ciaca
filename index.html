@@ -180,6 +180,12 @@
 
 <!-- ABA 2: RESULTADOS -->
 <section id="aba-res" hidden>
+  <div class="cartao destaque">
+    <h2>Entrega dos objetivos da visão de Negócio</h2>
+    <p class="nota">Objetivos de negócio do gêmeo digital e o resultado obtido nesta simulação do PCP, do corte mecanizado para o corte automático com gêmeo.</p>
+    <div class="rolagem"><table id="tab-negocio"></table></div>
+  </div>
+
   <div class="cartao">
     <div class="acoes">
       <button class="b pri" id="relatorio">Baixar relatório da simulação</button>
@@ -188,12 +194,6 @@
     </div>
   </div>
   <div class="blocos" id="blocos-res"></div>
-
-  <div class="cartao destaque">
-    <h2>Entrega dos objetivos da visão de Negócio</h2>
-    <p class="nota">Objetivos de negócio do gêmeo digital e o resultado obtido nesta simulação do PCP, do corte mecanizado para o corte automático com gêmeo.</p>
-    <div class="rolagem"><table id="tab-negocio"></table></div>
-  </div>
 
   <div class="cartao">
     <div class="fig-cab"><div><h2>Figura do artigo</h2><p class="nota">Uma figura em quatro partes, lote de 20 mm: (a) chapas em formação, (b) dispersão da espessura final, (c) economia por espessura (todos os lotes) e (d) lâmina e alarmes do gêmeo.</p></div><div class="acoes"><button class="b peq" data-png="fart" data-cor="1">Baixar PNG (cor)</button><button class="b peq" data-png="fart">Baixar PNG (cinza)</button></div></div>
@@ -833,10 +833,14 @@ th{background:#efefef}.n{text-align:right;font-variant-numeric:tabular-nums}svg{
   h += `<h1>Relatório da simulação: gêmeo digital na formação de chapas cimentícias</h1>
 <p class="nota">Gerado em ${esc(agora)}. Simulação virtual com dados sintéticos e parâmetros ilustrativos; semente ${p.semente}; ${mil(sim.res.mec.n)} chapas em cada forma de corte (corte mecanizado e corte automático com gêmeo digital).</p>`;
 
-  h += `<h2>1. Plano de produção e parâmetros</h2><h3>Lotes</h3>` + tabelaRel(
-    ['Lote', 'Espessura (mm)', 'Chapas', 'Lâmina média (mm)', 'Tempo por volta (s)', 'Tolerância (%)', 'Diâmetro da prensa (mm)', 'Camadas esperadas'],
-    p.lotes.map((l, i) => [i + 1, fmt(l.espessura_mm, 1), mil(l.chapas), fmt(l.lamina_mm, 2), fmt(l.tempo_volta_s, 1), fmt(l.tolerancia_pct, 0), mil(l.diametro_mm), camadasEsperadas(l)]),
-    [1, 2, 3, 4, 5, 6, 7]);
+  h += `<div class="negocio"><h2>1. Entrega dos objetivos da visão de Negócio</h2><p class="nota">Objetivos de negócio do gêmeo digital e o resultado obtido nesta simulação do PCP, do corte mecanizado para o corte automático com gêmeo.</p>` +
+    tabelaRel(['Objetivo da visão de Negócio', 'Indicador', 'Mecanizado', 'Com gêmeo', 'Variação'],
+      entregaNegocio().map(l => l.map((v, j) => j === 4 && v !== '-' ? `<b>${esc(v)}</b>` : esc(v))), [2, 3, 4]) + '</div>';
+
+  h += `<h2>2. Plano de produção e parâmetros</h2><h3>Lotes</h3>` + tabelaRel(
+    ['Lote', 'Espessura (mm)', 'Chapas', 'Lâmina média (mm)', 'Tempo por volta (s)', 'Tolerância da norma (%)', 'Faixa do negócio (%)', 'Diâmetro da prensa (mm)', 'Camadas esperadas'],
+    p.lotes.map((l, i) => [i + 1, fmt(l.espessura_mm, 1), mil(l.chapas), fmt(l.lamina_mm, 2), fmt(l.tempo_volta_s, 1), fmt(l.tolerancia_pct, 0), fmt(Motor.faixaNegocio(l), 1), mil(l.diametro_mm), camadasEsperadas(l)]),
+    [1, 2, 3, 4, 5, 6, 7, 8]);
   h += `<h3>Parâmetros</h3>` + tabelaRel(['Parâmetro', 'Valor'], [...CAMPOS_LAMINA, ...CAMPOS_PARAM].map(([rot, c]) => {
     const v = lerCaminho(p, c), f = (x) => Number(x).toLocaleString('pt-BR', { maximumFractionDigits: 4 });
     return [esc(rot), Array.isArray(v) ? v.map(f).join('; ') : f(v)];
@@ -844,10 +848,6 @@ th{background:#efefef}.n{text-align:right;font-variant-numeric:tabular-nums}svg{
   h += `<h3>Cenários de falha</h3>` + tabelaRel(['Falha', 'Lote', 'Chapa inicial', 'Duração'],
     p.falhas.filter(f => f.ativa).map(f => { const u = Motor.FALHAS[f.tipo].unidade; return [esc(Motor.FALHAS[f.tipo].nome), f.lote,
       u === 'lote' ? '-' : mil(f.chapa), u === 'lote' ? 'lote inteiro' : `${mil(f.duracao)} ${u === 's' ? 's' : u}`]; }), [1, 2, 3]);
-
-  h += `<div class="negocio"><h2>2. Entrega dos objetivos da visão de Negócio</h2><p class="nota">Objetivos de negócio do gêmeo digital e o resultado obtido nesta simulação do PCP, do corte mecanizado para o corte automático com gêmeo.</p>` +
-    tabelaRel(['Objetivo da visão de Negócio', 'Indicador', 'Mecanizado', 'Com gêmeo', 'Variação'],
-      entregaNegocio().map(l => l.map((v, j) => j === 4 && v !== '-' ? `<b>${esc(v)}</b>` : esc(v))), [2, 3, 4]) + '</div>';
 
   h += `<h2>3. Resumo dos indicadores</h2>` + tabelaRel(['Indicador', 'Corte mecanizado', 'Automático com gêmeo'], [
     ['Chapas dentro da norma (tolerância absoluta)', fmt(tot.mec.conf_tol_pct, 2) + '%', fmt(tot.gemeo.conf_tol_pct, 2) + '%'],
