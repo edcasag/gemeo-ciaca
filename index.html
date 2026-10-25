@@ -128,7 +128,7 @@
 <section id="aba-pcp">
   <div class="cartao">
     <h2>Lotes do plano de produção</h2>
-    <p class="nota">Cada lote tem espessura nominal, quantidade de chapas, lâmina média (regime da massa), tempo por volta do cilindro, tolerância da norma (limite absoluto; fora dela a chapa é reciclada), faixa do negócio (onde a fábrica quer trabalhar; o gêmeo põe o setpoint na parte baixa dessa faixa) e diâmetro da prensa. Na troca de lote, o gêmeo programa o setpoint, o diâmetro e as camadas esperadas.</p>
+    <p class="nota">Cada lote tem espessura nominal, quantidade de chapas, lâmina média (regime da massa), tempo por volta do cilindro, tolerância da norma (limite absoluto; fora dela a chapa é reciclada), faixa do negócio (onde a fábrica quer trabalhar; o gêmeo põe o <em>setpoint</em> na parte baixa dessa faixa) e diâmetro da prensa. Na troca de lote, o gêmeo programa o <em>setpoint</em>, o diâmetro e as camadas esperadas.</p>
     <div class="rolagem">
       <table id="tab-lotes">
         <thead><tr><th>Lote</th><th>Espessura (mm)</th><th>Chapas</th><th>Lâmina média (mm)</th><th>Tempo por volta (s)</th><th>Tolerância da norma (%)</th><th>Faixa do negócio (%)</th><th>Diâmetro da prensa (mm)</th><th>Camadas esperadas</th><th></th></tr></thead>
@@ -158,7 +158,7 @@
     </div>
     <div class="cartao">
       <h2>Corte mecânico e gêmeo</h2>
-      <p class="nota">Batimento do corte mecânico (sem sincronismo com o cilindro) e parâmetros da busca do setpoint pelo gêmeo.</p>
+      <p class="nota">Batimento do corte mecânico (sem sincronismo com o cilindro) e parâmetros da busca do <em>setpoint</em> pelo gêmeo.</p>
       <div class="campos" id="campos-param"></div>
     </div>
   </div>
@@ -182,7 +182,7 @@
     <div class="acoes">
       <button class="b pri" id="relatorio">Baixar relatório da simulação</button>
       <button class="b" id="csv">Baixar CSV das chapas simuladas</button>
-      <span class="estado">O relatório reúne PCP, parâmetros, indicadores, tabelas, figuras, falhas, alarmes e setpoints em uma página para imprimir ou salvar em PDF.</span>
+      <span class="estado">O relatório reúne PCP, parâmetros, indicadores, tabelas, figuras, falhas, alarmes e <em>setpoints</em> em uma página para imprimir ou salvar em PDF.</span>
     </div>
   </div>
   <div class="blocos" id="blocos-res"></div>
@@ -220,7 +220,7 @@
 <section id="aba-painel" hidden>
   <div class="cartao">
     <h2>Painel proposto do gêmeo digital</h2>
-    <p class="nota">Proposta de painel para o gêmeo conectado à máquina, reproduzindo a simulação em tempo acelerado: indicadores de negócio, espessura das chapas, setpoint enviado pelo gêmeo e alarmes de falha.</p>
+    <p class="nota">Proposta de painel para o gêmeo conectado à máquina, reproduzindo a simulação em tempo acelerado: indicadores de negócio, espessura das chapas, <em>setpoint</em> enviado pelo gêmeo e alarmes de falha.</p>
     <div class="controle">
       <label class="campo">Lote<select id="p-lote"></select></label>
       <label class="campo">Mostrar<select id="p-janela">
@@ -236,11 +236,11 @@
   </div>
   <div class="blocos" id="blocos-painel"></div>
   <div class="cartao">
-    <div class="fig-cab"><div><h2>Chapas em formação</h2><p class="nota">Espessura acumulada nas últimas chapas: sobe um degrau por volta até o corte e volta a zero. À esquerda, o corte mecânico pelo rolo; à direita, o corte automático no setpoint do gêmeo.</p></div><button class="b peq" data-png="fp1">Baixar PNG (cinza)</button></div>
+    <div class="fig-cab"><div><h2>Chapas em formação</h2><p class="nota">Espessura acumulada nas últimas chapas: sobe um degrau por volta até o corte e volta a zero. À esquerda, o corte mecânico pelo rolo; à direita, o corte automático no <em>setpoint</em> do gêmeo.</p></div><button class="b peq" data-png="fp1">Baixar PNG (cinza)</button></div>
     <div class="fig" id="fp1"></div>
   </div>
   <div class="cartao">
-    <div class="fig-cab"><div><h2>Dispersão da espessura final</h2><p class="nota">Chapas por faixa de 0,05 mm. Faixa sombreada: tolerância da norma; pontilhado: faixa do negócio; tracejado: nominal; linha contínua: setpoint atual do gêmeo.</p></div><button class="b peq" data-png="fp2">Baixar PNG (cinza)</button></div>
+    <div class="fig-cab"><div><h2>Dispersão da espessura final</h2><p class="nota">Chapas por faixa de 0,05 mm. Faixa sombreada: tolerância da norma; pontilhado: faixa do negócio; tracejado: nominal; linha contínua: <em>setpoint</em> atual do gêmeo.</p></div><button class="b peq" data-png="fp2">Baixar PNG (cinza)</button></div>
     <div class="fig" id="fp2"></div>
   </div>
   <div class="cartao">
@@ -249,7 +249,7 @@
   </div>
   <div class="grade2">
     <div class="cartao"><h2>Alarmes para o operador</h2><ul class="alarmes" id="p-alarmes"></ul></div>
-    <div class="cartao"><h2>Setpoints enviados pelo gêmeo</h2><ul class="alarmes" id="p-setpoints"></ul></div>
+    <div class="cartao"><h2><em>Setpoints</em> enviados pelo gêmeo</h2><ul class="alarmes" id="p-setpoints"></ul></div>
   </div>
 </section>
 </main>
@@ -280,7 +280,11 @@ function fmtTempo(s) {
   return `${h} h ${String(m).padStart(2, '0')} min ${String(ss).padStart(2, '0')} s`;
 }
 function fmtLat(s) { if (s === null || s === undefined) return '-'; return s < 120 ? fmt(s, 1) + ' s' : fmt(s / 60, 1) + ' min'; }
-function esc(s) { return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+function escPuro(s) { return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+// Termos estrangeiros em itálico, como pede a norma de redação.
+const ESTRANGEIROS = /\b(setpoints?|fuzzy)\b/gi;
+function esc(s) { return escPuro(s).replace(ESTRANGEIROS, '<em>$1</em>'); }
+function escSvg(s) { return escPuro(s).replace(ESTRANGEIROS, '<tspan font-style="italic">$1</tspan>'); }
 
 /* ---------- abas ---------- */
 function abrirAba(nome) {
@@ -316,7 +320,7 @@ function desenharFalhas() {
     const semDur = u === 'lote';
     return `<tr>
     <td><input type="checkbox" data-f="${i}" data-k="ativa" ${f.ativa ? 'checked' : ''} aria-label="Falha ${i + 1} ativa"></td>
-    <td><select data-f="${i}" data-k="tipo" aria-label="Tipo da falha ${i + 1}">${tipos.map(t => `<option value="${t}" ${t === f.tipo ? 'selected' : ''}>${esc(Motor.FALHAS[t].nome)}</option>`).join('')}</select></td>
+    <td><select data-f="${i}" data-k="tipo" aria-label="Tipo da falha ${i + 1}">${tipos.map(t => `<option value="${t}" ${t === f.tipo ? 'selected' : ''}>${escPuro(Motor.FALHAS[t].nome)}</option>`).join('')}</select></td>
     <td><input type="number" min="1" step="1" data-f="${i}" data-k="lote" value="${f.lote}" aria-label="Lote da falha ${i + 1}"></td>
     <td><input type="number" min="0" step="1" data-f="${i}" data-k="chapa" value="${f.chapa}" ${semDur ? 'disabled' : ''} aria-label="Chapa inicial da falha ${i + 1}"></td>
     <td><input type="number" min="0" step="1" data-f="${i}" data-k="duracao" value="${f.duracao}" ${semDur ? 'disabled' : ''} aria-label="Duração da falha ${i + 1}"></td>
@@ -480,7 +484,7 @@ function painelSVG(p, T) {
   const sx = escala(p.xMin, p.xMax, x0, x1), sy = escala(p.yMin, p.yMax, y1, y0);
   const cl = (v, a, b) => Math.max(a, Math.min(b, v));
   let s = '';
-  if (p.titulo) s += `<text x="${x0}" y="${p.y + 17}" font-size="13" font-weight="600" fill="${T.tinta}">${esc(p.titulo)}</text>`;
+  if (p.titulo) s += `<text x="${x0}" y="${p.y + 17}" font-size="13" font-weight="600" fill="${T.tinta}">${escSvg(p.titulo)}</text>`;
   for (const b of p.faixasY || []) {
     const ya = sy(Math.min(b.y1, p.yMax)), yb = sy(Math.max(b.y0, p.yMin));
     s += `<rect x="${x0}" y="${ya}" width="${x1 - x0}" height="${Math.max(0, yb - ya)}" fill="${T.faixa}"/>`;
@@ -492,16 +496,16 @@ function painelSVG(p, T) {
   for (const v of marcas(p.yMin, p.yMax, p.nY || 5)) {
     const y = sy(v);
     s += `<line x1="${x0}" x2="${x1}" y1="${y}" y2="${y}" stroke="${T.grade}" stroke-width="1"/>`;
-    s += `<text x="${x0 - 7}" y="${y + 4}" font-size="11" text-anchor="end" fill="${T.mudo}">${esc((p.fmtY || fmtEixo)(v))}</text>`;
+    s += `<text x="${x0 - 7}" y="${y + 4}" font-size="11" text-anchor="end" fill="${T.mudo}">${escSvg((p.fmtY || fmtEixo)(v))}</text>`;
   }
   s += `<line x1="${x0}" x2="${x1}" y1="${y1}" y2="${y1}" stroke="${T.eixo}" stroke-width="1"/>`;
   for (const v of (p.xMarcas || marcas(p.xMin, p.xMax, p.nX || 6))) {
     const x = sx(v);
     s += `<line x1="${x}" x2="${x}" y1="${y1}" y2="${y1 + 4}" stroke="${T.eixo}" stroke-width="1"/>`;
-    s += `<text x="${x}" y="${y1 + 16}" font-size="11" text-anchor="middle" fill="${T.mudo}">${esc((p.fmtX || fmtEixo)(v))}</text>`;
+    s += `<text x="${x}" y="${y1 + 16}" font-size="11" text-anchor="middle" fill="${T.mudo}">${escSvg((p.fmtX || fmtEixo)(v))}</text>`;
   }
-  if (p.tituloX) s += `<text x="${(x0 + x1) / 2}" y="${y1 + 34}" font-size="11.5" text-anchor="middle" fill="${T.tinta2}">${esc(p.tituloX)}</text>`;
-  if (p.tituloY) s += `<text transform="translate(${p.x + 13},${(y0 + y1) / 2}) rotate(-90)" font-size="11.5" text-anchor="middle" fill="${T.tinta2}">${esc(p.tituloY)}</text>`;
+  if (p.tituloX) s += `<text x="${(x0 + x1) / 2}" y="${y1 + 34}" font-size="11.5" text-anchor="middle" fill="${T.tinta2}">${escSvg(p.tituloX)}</text>`;
+  if (p.tituloY) s += `<text transform="translate(${p.x + 13},${(y0 + y1) / 2}) rotate(-90)" font-size="11.5" text-anchor="middle" fill="${T.tinta2}">${escSvg(p.tituloY)}</text>`;
   for (const r of p.linhasX || []) {
     if (r.x < p.xMin || r.x > p.xMax) continue;
     const x = sx(r.x);
@@ -511,12 +515,12 @@ function painelSVG(p, T) {
     if (r.y < p.yMin || r.y > p.yMax) continue;
     const y = sy(r.y);
     s += `<line x1="${x0}" x2="${x1}" y1="${y}" y2="${y}" stroke="${r.cor || T.mudo}" stroke-width="${r.larg || 1}" ${r.traco ? `stroke-dasharray="${r.traco}"` : ''}/>`;
-    if (r.rotulo) s += `<text x="${x1 - 4}" y="${y - 5}" font-size="11" text-anchor="end" fill="${T.tinta2}">${esc(r.rotulo)}</text>`;
+    if (r.rotulo) s += `<text x="${x1 - 4}" y="${y - 5}" font-size="11" text-anchor="end" fill="${T.tinta2}">${escSvg(r.rotulo)}</text>`;
   }
   for (const b of p.barras || []) {
     const xa = sx(b.x0), xb = sx(b.x1), yb = sy(0), yt = sy(b.y);
     s += `<path d="${barraPath(xa, xb - xa, yb, yt)}" fill="${b.cor}"/>`;
-    if (b.rotulo) s += `<text x="${(xa + xb) / 2}" y="${b.y >= 0 ? yt - 5 : yt + 13}" font-size="11" text-anchor="middle" fill="${T.tinta2}">${esc(b.rotulo)}</text>`;
+    if (b.rotulo) s += `<text x="${(xa + xb) / 2}" y="${b.y >= 0 ? yt - 5 : yt + 13}" font-size="11" text-anchor="middle" fill="${T.tinta2}">${escSvg(b.rotulo)}</text>`;
   }
   const idClip = 'c' + Math.random().toString(36).slice(2, 8);
   s += `<clipPath id="${idClip}"><rect x="${x0}" y="${y0 - 2}" width="${x1 - x0}" height="${y1 - y0 + 4}"/></clipPath><g clip-path="url(#${idClip})">`;
@@ -534,20 +538,20 @@ function painelSVG(p, T) {
   for (const se of p.series || []) {
     if (se.rotuloFim && se.pontos.length) {
       const u = se.pontos[se.pontos.length - 1];
-      s += `<text x="${sx(u[0]) + 6}" y="${sy(u[1]) + 4}" font-size="11" fill="${T.tinta2}">${esc(se.rotuloFim)}</text>`;
+      s += `<text x="${sx(u[0]) + 6}" y="${sy(u[1]) + 4}" font-size="11" fill="${T.tinta2}">${escSvg(se.rotuloFim)}</text>`;
     }
   }
   return { svg: s, meta: { x0, x1, y0, y1, sx, sy, p } };
 }
 function figuraSVG(spec, T, comFundo) {
   const { W, H } = spec;
-  let s = `<svg xmlns="${SVGNS}" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" font-family="${T.fonte}" role="img" aria-label="${esc(spec.rotulo || '')}">`;
+  let s = `<svg xmlns="${SVGNS}" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" font-family="${T.fonte}" role="img" aria-label="${escPuro(spec.rotulo || '')}">`;
   if (comFundo) s += `<rect width="${W}" height="${H}" fill="${T.fundo}"/>`;
   if (spec.legenda) {
     let x = 54; const y = 14;
     for (const it of spec.legenda) {
       s += `<line x1="${x}" y1="${y}" x2="${x + 24}" y2="${y}" stroke="${it.cor}" stroke-width="${Math.max(2, it.larg || 2)}" stroke-linecap="round" ${it.traco ? `stroke-dasharray="${it.traco}"` : ''}/>`;
-      s += `<text x="${x + 30}" y="${y + 4}" font-size="12" fill="${T.tinta2}">${esc(it.nome)}</text>`;
+      s += `<text x="${x + 30}" y="${y + 4}" font-size="12" fill="${T.tinta2}">${escSvg(it.nome)}</text>`;
       x += 44 + it.nome.length * 6.4;
     }
   }
@@ -1034,7 +1038,7 @@ function desenharPainel() {
   const sps = r.setpoints.filter(s => s.lote === li + 1 && s.chapa <= Math.max(0, c - 1)).slice().reverse();
   $('#p-setpoints').innerHTML = sps.length ? sps.map(s => `<li><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><rect x="2" y="7" width="12" height="2" rx="1" fill="var(--text-secondary)"/></svg><div><div class="tit">${fmt(s.S, 2)} mm</div>
     <div class="det">${esc(s.motivo)}</div><div class="det">Chapa ${s.chapa.toLocaleString('pt-BR')}, ${fmtTempo(s.t)}</div></div></li>`).join('')
-    : '<li class="vazio" style="display:block">Nenhum setpoint enviado ainda.</li>';
+    : '<li class="vazio" style="display:block">Nenhum <em>setpoint</em> enviado ainda.</li>';
   render('fp1', specFormacao); render('fp2', specDispersao); render('fp3', specLamina);
 }
 
