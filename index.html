@@ -115,7 +115,7 @@
 <body>
 <div class="topo">
   <h1>Gêmeo digital na formação de chapas cimentícias</h1>
-  <p class="sub">Simulador virtual. A máquina, o corte mecânico, o corte automático do controlador e o gêmeo digital são simulados, sem conexão com equipamento real. Edite o plano de produção (PCP), simule e compare os resultados.</p>
+  <p class="sub">Simulador virtual. A máquina, o corte mecanizado, o corte automático do controlador com o gêmeo digital são simulados, sem conexão com equipamento real. Edite o plano de produção (PCP), simule e compare os resultados.</p>
 </div>
 <nav class="abas" role="tablist">
   <button role="tab" data-aba="pcp" aria-selected="true">1. PCP</button>
@@ -140,7 +140,7 @@
 
   <div class="cartao">
     <h2>Cenários de falha</h2>
-    <p class="nota">Falhas injetadas na simulação, aplicadas igualmente às três formas de corte. O gêmeo detecta cada uma e emite alarme para o operador.</p>
+    <p class="nota">Falhas injetadas na simulação, aplicadas igualmente ao corte mecanizado e ao automático com gêmeo. O gêmeo detecta cada uma e emite alarme para o operador.</p>
     <div class="rolagem">
       <table id="tab-falhas">
         <thead><tr><th>Ativa</th><th>Falha</th><th>Lote</th><th>Chapa inicial</th><th>Duração</th><th></th><th></th></tr></thead>
@@ -198,7 +198,7 @@
 
   <div class="cartao">
     <h2>Falhas detectadas pelo gêmeo</h2>
-    <p class="nota">Tempo até a detecção e chapas fora da tolerância durante a falha (mecânico / automático / com gêmeo).</p>
+    <p class="nota">Tempo até a detecção e chapas fora da tolerância durante a falha (mecânico / automático com gêmeo).</p>
     <div class="rolagem"><table id="tab-falhas-res"></table></div>
   </div>
 
@@ -257,7 +257,9 @@ const $ = (s) => document.querySelector(s);
 const SVGNS = 'http://www.w3.org/2000/svg';
 let pcp = Motor.copiar(Motor.PCP_PADRAO);
 let sim = null;
-const POL = Motor.POLITICAS, NOME = Motor.NOME_POLITICA;
+// A página compara o corte mecanizado com o automático com gêmeo. O motor também
+// simula o automático sem ajuste do setpoint, usado só na verificação (testes.html).
+const POL = ['mec', 'gemeo'], NOME = Motor.NOME_POLITICA;
 
 /* ---------- formatação ---------- */
 function fmt(x, d = 1) {
@@ -401,7 +403,7 @@ function executar() {
     $('#simular').disabled = false;
     if (sim.erros.length) { $('#erros').innerHTML = sim.erros.map(esc).join('<br>'); return; }
     const n = sim.res.mec.n;
-    $('#estado').textContent = `Simulado em ${fmt(sim.ms / 1000, 1)} s: ${n.toLocaleString('pt-BR')} chapas em cada uma das três formas de corte.`;
+    $('#estado').textContent = `Simulado em ${fmt(sim.ms / 1000, 1)} s: ${n.toLocaleString('pt-BR')} chapas no corte mecanizado e no automático com gêmeo.`;
     desenharResultados();
     prepararPainel();
   }, 30);
@@ -613,9 +615,9 @@ function desenharResultados() {
   const tot = sim.ind.total.pol;
   $('#blocos-res').innerHTML =
     bloco('Chapas economizadas com o gêmeo', fmt0(tot.gemeo.chapas_economizadas), `${fmt(tot.gemeo.economia_pct, 1)}% do material, automático com gêmeo frente ao mecanizado`, true) +
-    bloco('Conformidade', fmt(tot.gemeo.conf_tol_pct, 2) + '%', `mecânico ${fmt(tot.mec.conf_tol_pct, 2)}%; automático ${fmt(tot.auto.conf_tol_pct, 2)}%`) +
-    bloco('Voltas por chapa', fmt(tot.gemeo.voltas_media, 1), `mecânico ${fmt(tot.mec.voltas_media, 1)}; automático ${fmt(tot.auto.voltas_media, 1)}`) +
-    bloco('Chapas por hora', fmt(tot.gemeo.chapas_hora, 1), `mecânico ${fmt(tot.mec.chapas_hora, 1)}; automático ${fmt(tot.auto.chapas_hora, 1)}`) +
+    bloco('Conformidade', fmt(tot.gemeo.conf_tol_pct, 2) + '%', `mecânico ${fmt(tot.mec.conf_tol_pct, 2)}%`) +
+    bloco('Voltas por chapa', fmt(tot.gemeo.voltas_media, 1), `mecânico ${fmt(tot.mec.voltas_media, 1)}`) +
+    bloco('Chapas por hora', fmt(tot.gemeo.chapas_hora, 1), `mecânico ${fmt(tot.mec.chapas_hora, 1)}`) +
     bloco('Completude da trilha de eventos', fmt(tot.gemeo.completude_trilha_pct, 3) + '%', `${tot.gemeo.eventos_atrasados.toLocaleString('pt-BR')} eventos retidos na borda e entregues depois`);
 
   let h = `<thead><tr><th>Lote</th><th>Forma de corte</th><th class="num">Conformidade</th><th class="num">Conf. 10%</th><th class="num">Conf. 5%</th><th class="num">Média (mm)</th><th class="num">Desvio (mm)</th><th class="num">Voltas</th><th class="num">Chapas/h</th><th class="num">Economia</th><th class="num">Chapas econ.</th></tr></thead><tbody>`;
@@ -635,7 +637,7 @@ function desenharResultados() {
   sim.falhas.forEach(f => {
     hf += `<tr><td>${iconeSev(f.sev)} ${esc(f.nome)}</td><td>${f.lote}</td><td class="num">${f.unidade === 'lote' ? '-' : f.chapa.toLocaleString('pt-BR')}</td>
       <td class="num">${f.detectada ? fmtLat(f.latencia_s) : 'não detectada'}</td><td class="num">${f.chapas.toLocaleString('pt-BR')}</td>
-      <td class="num">${f.fora_tol.mec} / ${f.fora_tol.auto} / ${f.fora_tol.gemeo}</td></tr>`;
+      <td class="num">${f.fora_tol.mec} / ${f.fora_tol.gemeo}</td></tr>`;
   });
   $('#tab-falhas-res').innerHTML = hf + '</tbody>';
 
