@@ -25,6 +25,18 @@ Abra `index.html` no navegador, localmente ou pelo GitHub Pages do repositório.
 
 Conformidade (tolerância do lote, 10% e 5%), espessura média e desvio-padrão, voltas por chapa, chapas por hora, economia de material frente ao corte mecânico (em % e em chapas economizadas), tempo até a detecção de cada falha e completude da trilha de eventos.
 
+## Resultados do artigo
+
+A pasta `resultados/` traz a simulação do PCP padrão (`pcp_padrao.json`, semente 1), com 26.000 chapas em cinco lotes, comparando o corte mecanizado e o corte automático com gêmeo:
+
+| Arquivo | Conteúdo |
+|---|---|
+| `resultados/relatorio_simulacao_padrao.html` | Relatório completo: PCP, parâmetros, indicadores, tabelas por lote, figuras, falhas, alarmes e *setpoints* enviados |
+| `resultados/resumo_por_lote.csv` | Indicadores por lote e forma de corte, com o total |
+| `resultados/chapas_simuladas.zip` | CSV com uma linha por chapa simulada (52.000 linhas) |
+
+Os mesmos arquivos são gerados pela página (aba Resultados: "Baixar relatório da simulação" e "Baixar CSV das chapas simuladas").
+
 ## Reprodutibilidade
 
 A simulação é determinística: a mesma semente e o mesmo PCP produzem a mesma saída. O PCP padrão está em `pcp_padrao.json` e pode ser exportado e importado pela página.
