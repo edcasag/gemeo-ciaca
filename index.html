@@ -231,7 +231,7 @@
   </div>
   <div class="blocos" id="blocos-painel"></div>
   <div class="cartao">
-    <div class="fig-cab"><div><h2>Chapas em formação</h2><p class="nota">Espessura acumulada volta a volta nas últimas chapas: sobe até o corte e volta a zero. À esquerda, o corte mecânico pelo rolo; à direita, o corte automático no setpoint do gêmeo.</p></div><button class="b peq" data-png="fp1">Baixar PNG (cinza)</button></div>
+    <div class="fig-cab"><div><h2>Chapas em formação</h2><p class="nota">Espessura acumulada nas últimas chapas: sobe um degrau por volta até o corte e volta a zero. À esquerda, o corte mecânico pelo rolo; à direita, o corte automático no setpoint do gêmeo.</p></div><button class="b peq" data-png="fp1">Baixar PNG (cinza)</button></div>
     <div class="fig" id="fp1"></div>
   </div>
   <div class="cartao">
@@ -894,7 +894,8 @@ function specFormacao(T, fixo) {
     y: 26, w: W / 2, h: H - 26, xMin: 0, xMax, yMin: 0, yMax, titulo, tituloX: 'tempo (s)', tituloY: 'espessura acumulada (mm)',
     faixasY: [{ y0: Tn * (1 - tol), y1: Tn * (1 + tol) }], linhasY: linhas, fmtY: v => fmt(v, 0),
     fmtDicaX: v => `t = ${fmt(v, 1)} s`, fmtDicaY: v => fmt(v, 2) + ' mm',
-    series: [{ nome: NOME[pol], pontos: pts, cor: T.pol[pol].cor, traco: T.pol[pol].traco, larg: T.pol[pol].larg }]
+    // Escada: a espessura medida sobe um degrau por volta, quando a lâmina nova passa sob o medidor.
+    series: [{ nome: NOME[pol], pontos: pts, degrau: true, cor: T.pol[pol].cor, traco: T.pol[pol].traco, larg: T.pol[pol].larg }]
   });
   return { W, H, arquivo: `figura_formacao_lote${li + 1}`, rotulo: 'Chapas em formação: espessura acumulada volta a volta',
     legenda: [...legPol(T, ['mec', 'gemeo']), { nome: 'Setpoint do gêmeo', cor: T.setp, larg: 1.5 }, { nome: `Nominal ${fmt(Tn, 1)} mm`, cor: T.mudo, traco: '3 3', larg: 1 }],
