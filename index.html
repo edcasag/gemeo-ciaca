@@ -327,7 +327,7 @@ const CAMPOS_PARAM = [
   ['Batimento: 1 chapa a cada', 'mecanico.batimento_cada', 1],
   ['Lâminas extras (alternadas)', 'mecanico.laminas_extra', null],
   ['Meta de conformidade do gêmeo (%)', 'gemeo.meta_conformidade_pct', 0.1],
-  ['Redução máxima do setpoint abaixo do nominal (%)', 'gemeo.reducao_max_setpoint_pct', 0.5],
+  ['Margem de segurança acima do limite inferior (% da nominal)', 'gemeo.margem_limite_inferior_pct', 0.5],
   ['Passo do setpoint (mm)', 'gemeo.passo_setpoint_mm', 0.01],
   ['Chapas por teste no gêmeo', 'gemeo.chapas_por_teste', 50],
   ['Reestimar o regime a cada (chapas)', 'gemeo.janela_chapas', 10],
@@ -796,7 +796,7 @@ ${svg(specFormacao(T, { li }))}${svg(specDispersao(T, { li }))}${svg(specLamina(
   h += `<h3>Setpoints enviados pelo gêmeo</h3>` + tabelaRel(['Instante', 'Lote', 'Chapa', 'Setpoint (mm)', 'Motivo'],
     sim.res.gemeo.setpoints.map(s => [fmtTempo(s.t), s.lote, mil(s.chapa), fmt(s.S, 2), esc(s.motivo)]), [1, 2, 3]);
 
-  h += `<h2>6. Notas</h2><p class="nota">Corte mecanizado: comandado quando a chapa atinge o rolo auxiliar, regulado no nominal; sem sincronismo com o cilindro, por batimento uma chapa a cada ${p.mecanico.batimento_cada} sai com ${p.mecanico.laminas_extra.join(' ou ')} lâminas a mais. Corte automático com gêmeo: o controlador, sincronizado com o cilindro, corta quando a espessura medida está mais perto do setpoint do que estará após mais uma volta; o gêmeo programa setpoint, diâmetro e camadas na troca de lote, reestima o regime da massa e emite alarmes. Um corte automático bem ajustado manualmente teria o mesmo resultado; o gêmeo mantém esse ajuste de forma contínua. Redução máxima do setpoint abaixo do nominal: ${fmtEixo(p.gemeo.reducao_max_setpoint_pct ?? 100)}%.</p>`;
+  h += `<h2>6. Notas</h2><p class="nota">Corte mecanizado: comandado quando a chapa atinge o rolo auxiliar, regulado no nominal; sem sincronismo com o cilindro, por batimento uma chapa a cada ${p.mecanico.batimento_cada} sai com ${p.mecanico.laminas_extra.join(' ou ')} lâminas a mais. Corte automático com gêmeo: o controlador, sincronizado com o cilindro, corta quando a espessura medida está mais perto do setpoint do que estará após mais uma volta; o gêmeo programa setpoint, diâmetro e camadas na troca de lote, reestima o regime da massa e emite alarmes. Um corte automático bem ajustado manualmente teria o mesmo resultado; o gêmeo mantém esse ajuste de forma contínua. O gêmeo envia o menor setpoint que mantém a meta de conformidade, aproveitando a tolerância até o limite inferior; margem de segurança acima do limite inferior: ${fmtEixo(p.gemeo.margem_limite_inferior_pct || 0)}% da nominal. Chapas fora da tolerância são recicladas pelo controle de qualidade.</p>`;
   return h + '</body></html>';
 }
 $('#relatorio').addEventListener('click', () => {
