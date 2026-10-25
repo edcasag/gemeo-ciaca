@@ -34,11 +34,19 @@
   const mecNormal = [], mecBat = [];
   for (let g = 0; g < 100; g++) (Motor.extraBatimento(e1, g) ? mecBat : mecNormal).push(r1.res.mec.voltas[g]);
   verifica('E1 mecânico: chapas normais cortam na volta que atinge a medida (34 voltas)', mecNormal.every(v => v === 34), 'voltas ' + [...new Set(mecNormal)]);
-  verifica('E1 mecânico: batimento acrescenta 1 ou 2 voltas', mecBat.every(v => v === 35 || v === 36) && mecBat.length === 10, 'voltas ' + mecBat.join(','));
+  const nBat = Math.floor(100 / e1.mecanico.batimento_cada);
+  verifica(`E1 mecânico: batimento em 1 de cada ${e1.mecanico.batimento_cada} chapas acrescenta 1 ou 2 voltas`, mecBat.every(v => v === 35 || v === 36) && mecBat.length === nBat, 'voltas ' + mecBat.join(','));
   verifica('E1 automático (setpoint nominal): antecipa e corta em 33 voltas', Array.from(r1.res.auto.voltas).every(v => v === 33));
-  verifica('E1 gêmeo: setpoint no limite inferior com lâmina constante (30 voltas, 18,0 mm)',
-    Array.from(r1.res.gemeo.voltas).every(v => v === 30) && Math.abs(r1.res.gemeo.setpoint[0] - 18) < 1e-6, 'setpoint ' + r1.res.gemeo.setpoint[0]);
+  verifica('E1 gêmeo, padrão (sem redução do setpoint): setpoint no nominal, 33 voltas',
+    Array.from(r1.res.gemeo.voltas).every(v => v === 33) && Math.abs(r1.res.gemeo.setpoint[0] - 20) < 1e-6, 'setpoint ' + r1.res.gemeo.setpoint[0]);
   verifica('E1 gêmeo: 100% conforme', r1.ind.lotes[0].pol.gemeo.conf_tol_pct === 100);
+  const e1b = Motor.copiar(e1); e1b.gemeo.reducao_max_setpoint_pct = 100;
+  const r1b = Motor.simular(e1b);
+  verifica('E1 gêmeo, redução liberada: setpoint no limite inferior (30 voltas, 18,0 mm)',
+    Array.from(r1b.res.gemeo.voltas).every(v => v === 30) && Math.abs(r1b.res.gemeo.setpoint[0] - 18) < 1e-6, 'setpoint ' + r1b.res.gemeo.setpoint[0]);
+  const e1c = Motor.copiar(e1); e1c.gemeo.reducao_max_setpoint_pct = 5;
+  const r1c = Motor.simular(e1c);
+  verifica('E1 gêmeo, redução máxima de 5%: setpoint não fica abaixo de 19,0 mm', r1c.res.gemeo.setpoint[0] >= 19 - 1e-6, 'setpoint ' + r1c.res.gemeo.setpoint[0]);
 
   // Sem falhas: invariantes.
   const sf = base(); sf.falhas = [];
@@ -55,7 +63,7 @@
     r2.ind.lotes.map(o => o.pol.gemeo.conf_tol_pct.toFixed(2)).join(' / '));
   verifica('Sem falhas: nenhum alarme do gêmeo', r2.res.gemeo.alarmes.length === 0, r2.res.gemeo.alarmes.map(a => a.tipo).join(','));
   let bat = 0; for (let g = 0; g < r2.res.mec.n; g++) if (r2.res.mec.flags[g] & 2) bat++;
-  verifica('Batimento do mecânico em 1 de cada 10 chapas', Math.abs(bat / r2.res.mec.n - 0.1) < 0.001, (100 * bat / r2.res.mec.n).toFixed(2) + '%');
+  verifica(`Batimento do mecânico em 1 de cada ${sf.mecanico.batimento_cada} chapas`, Math.abs(bat / r2.res.mec.n - 1 / sf.mecanico.batimento_cada) < 0.001, (100 * bat / r2.res.mec.n).toFixed(2) + '%');
 
   // Determinismo.
   const pa = Motor.simular(base()), pb = Motor.simular(base());

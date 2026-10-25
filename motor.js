@@ -34,8 +34,8 @@
       { espessura_mm: 25, chapas: 3000, lamina_mm: 0.60, tempo_volta_s: 1.5, tolerancia_pct: 10, diametro_mm: 2050 },
       { espessura_mm: 30, chapas: 2000, lamina_mm: 0.60, tempo_volta_s: 1.5, tolerancia_pct: 10, diametro_mm: 2050 }
     ],
-    mecanico: { batimento_cada: 10, laminas_extra: [1, 2] },
-    gemeo: { meta_conformidade_pct: 100, passo_setpoint_mm: 0.05, chapas_por_teste: 400, janela_chapas: 50 },
+    mecanico: { batimento_cada: 20, laminas_extra: [1, 2] },
+    gemeo: { meta_conformidade_pct: 100, reducao_max_setpoint_pct: 0, passo_setpoint_mm: 0.05, chapas_por_teste: 400, janela_chapas: 50 },
     falhas: [
       { tipo: 'falta_massa',    lote: 1, chapa: 1000, duracao: 20,  ativa: true },
       { tipo: 'rede',           lote: 1, chapa: 3000, duracao: 5,   ativa: true },
@@ -191,7 +191,8 @@
   // cresce com o setpoint a partir do limite inferior; busca binária na grade.
   function otimizarSetpoint(pcp, T, tol, mu, amp) {
     const g = pcp.gemeo, passo = g.passo_setpoint_mm;
-    const ini = Math.ceil(T * (1 - tol) / passo), fim = Math.floor(T / passo);
+    const red = Math.min(tol, Math.max(0, (g.reducao_max_setpoint_pct ?? 100) / 100));
+    const ini = Math.ceil(T * (1 - red) / passo - 1e-9), fim = Math.floor(T / passo + 1e-9);
     const ok = (j) => gemeoTestar(T, tol, mu, amp, j * passo, g.chapas_por_teste, pcp.semente, pcp).conf_pct >= g.meta_conformidade_pct;
     if (!ok(fim)) return T;
     let a = ini, b = fim;
@@ -372,7 +373,7 @@
                       trancoPend.n++; if (grande) trancoPend.grandes++;
                       if (trancoPend.n >= 5) {
                         if (trancoPend.grandes === 0) {
-                          alarmar('trancos', t, li, i, `Degrau de ${trancoPend.d.toFixed(2)} mm na lâmina, mantido nas voltas seguintes`, fl.find(ff => ff.tipo === 'trancos' && dentro(ff, i)));
+                          alarmar('trancos', t, li, i, `Degrau de ${trancoPend.d.toFixed(2).replace('.', ',')} mm na lâmina, mantido nas voltas seguintes`, fl.find(ff => ff.tipo === 'trancos' && dentro(ff, i)));
                           reestimar(t, i, 'Alarme de tranco na espessura');
                         }
                         trancoPend = null;

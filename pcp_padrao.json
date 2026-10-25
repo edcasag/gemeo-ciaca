@@ -12,8 +12,8 @@
     { "espessura_mm": 25, "chapas": 3000, "lamina_mm": 0.60, "tempo_volta_s": 1.5, "tolerancia_pct": 10, "diametro_mm": 2050 },
     { "espessura_mm": 30, "chapas": 2000, "lamina_mm": 0.60, "tempo_volta_s": 1.5, "tolerancia_pct": 10, "diametro_mm": 2050 }
   ],
-  "mecanico": { "batimento_cada": 10, "laminas_extra": [1, 2] },
-  "gemeo": { "meta_conformidade_pct": 100, "passo_setpoint_mm": 0.05, "chapas_por_teste": 400, "janela_chapas": 50 },
+  "mecanico": { "batimento_cada": 20, "laminas_extra": [1, 2] },
+  "gemeo": { "meta_conformidade_pct": 100, "reducao_max_setpoint_pct": 0, "passo_setpoint_mm": 0.05, "chapas_por_teste": 400, "janela_chapas": 50 },
   "falhas": [
     { "tipo": "falta_massa",    "lote": 1, "chapa": 1000, "duracao": 20,  "ativa": true },
     { "tipo": "rede",           "lote": 1, "chapa": 3000, "duracao": 5,   "ativa": true },

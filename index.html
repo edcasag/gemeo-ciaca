@@ -178,6 +178,13 @@
 
 <!-- ABA 2: RESULTADOS -->
 <section id="aba-res" hidden>
+  <div class="cartao">
+    <div class="acoes">
+      <button class="b pri" id="relatorio">Baixar relatório da simulação</button>
+      <button class="b" id="csv">Baixar CSV das chapas simuladas</button>
+      <span class="estado">O relatório reúne PCP, parâmetros, indicadores, tabelas, figuras, falhas, alarmes e setpoints em uma página para imprimir ou salvar em PDF.</span>
+    </div>
+  </div>
   <div class="blocos" id="blocos-res"></div>
 
   <div class="cartao">
@@ -202,12 +209,6 @@
     <div class="rolagem"><table id="tab-falhas-res"></table></div>
   </div>
 
-  <div class="cartao">
-    <div class="acoes">
-      <button class="b" id="csv">Baixar CSV das chapas simuladas</button>
-      <span class="estado">Uma linha por chapa e por forma de corte: lote, chapa, espessura final, voltas, setpoint, lâmina média, indicadores de corte mecânico, batimento e perda.</span>
-    </div>
-  </div>
 </section>
 
 <!-- ABA 3: PAINEL -->
@@ -326,6 +327,7 @@ const CAMPOS_PARAM = [
   ['Batimento: 1 chapa a cada', 'mecanico.batimento_cada', 1],
   ['Lâminas extras (alternadas)', 'mecanico.laminas_extra', null],
   ['Meta de conformidade do gêmeo (%)', 'gemeo.meta_conformidade_pct', 0.1],
+  ['Redução máxima do setpoint abaixo do nominal (%)', 'gemeo.reducao_max_setpoint_pct', 0.5],
   ['Passo do setpoint (mm)', 'gemeo.passo_setpoint_mm', 0.01],
   ['Chapas por teste no gêmeo', 'gemeo.chapas_por_teste', 50],
   ['Reestimar o regime a cada (chapas)', 'gemeo.janela_chapas', 10],
@@ -725,6 +727,83 @@ $('#csv').addEventListener('click', () => {
   baixar(new Blob([linhas.join('\n')], { type: 'text/csv' }), 'chapas_simuladas.csv');
 });
 
+/* ---------- relatório da simulação ---------- */
+function tabelaRel(cab, linhas, numericas = []) {
+  const cel = (v, j, tag) => `<${tag}${numericas.includes(j) ? ' class="n"' : ''}>${v}</${tag}>`;
+  return `<table><thead><tr>${cab.map((c, j) => cel(esc(c), j, 'th')).join('')}</tr></thead><tbody>` +
+    (linhas.length ? linhas.map(l => `<tr>${l.map((v, j) => cel(v, j, 'td')).join('')}</tr>`).join('') : `<tr><td colspan="${cab.length}">Nenhum registro.</td></tr>`) +
+    '</tbody></table>';
+}
+function gerarRelatorio() {
+  const T = TEMA_IMP, svg = (spec) => figuraSVG(spec, T, true).svg;
+  const p = sim.pcp, tot = sim.ind.total.pol, agora = new Date().toLocaleString('pt-BR');
+  const mil = (x) => Number(x).toLocaleString('pt-BR');
+  let h = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Relatório da simulação</title><style>
+body{font:12px/1.45 Arial,Helvetica,sans-serif;color:#000;background:#fff;margin:24px auto;max-width:1000px;padding:0 16px}
+h1{font-size:19px;margin:0 0 4px}h2{font-size:15px;margin:24px 0 6px;border-bottom:1px solid #888;padding-bottom:3px}h3{font-size:13px;margin:16px 0 4px}
+table{border-collapse:collapse;width:100%;margin:6px 0 10px}th,td{border-bottom:1px solid #ccc;padding:3px 6px;text-align:left;vertical-align:top}
+th{background:#efefef}.n{text-align:right;font-variant-numeric:tabular-nums}svg{width:100%;height:auto;display:block;margin:4px 0 10px}
+.nota{color:#222}.bloco{page-break-inside:avoid}@media print{body{margin:0 auto}h2{page-break-after:avoid}}
+</style></head><body>`;
+  h += `<h1>Relatório da simulação: gêmeo digital na formação de chapas cimentícias</h1>
+<p class="nota">Gerado em ${esc(agora)}. Simulação virtual com dados sintéticos e parâmetros ilustrativos; semente ${p.semente}; ${mil(sim.res.mec.n)} chapas em cada forma de corte (corte mecanizado e corte automático com gêmeo digital).</p>`;
+
+  h += `<h2>1. Plano de produção e parâmetros</h2><h3>Lotes</h3>` + tabelaRel(
+    ['Lote', 'Espessura (mm)', 'Chapas', 'Lâmina média (mm)', 'Tempo por volta (s)', 'Tolerância (%)', 'Diâmetro da prensa (mm)', 'Camadas esperadas'],
+    p.lotes.map((l, i) => [i + 1, fmt(l.espessura_mm, 1), mil(l.chapas), fmt(l.lamina_mm, 2), fmt(l.tempo_volta_s, 1), fmt(l.tolerancia_pct, 0), mil(l.diametro_mm), camadasEsperadas(l)]),
+    [1, 2, 3, 4, 5, 6, 7]);
+  h += `<h3>Parâmetros</h3>` + tabelaRel(['Parâmetro', 'Valor'], [...CAMPOS_LAMINA, ...CAMPOS_PARAM].map(([rot, c]) => {
+    const v = lerCaminho(p, c), f = (x) => Number(x).toLocaleString('pt-BR', { maximumFractionDigits: 4 });
+    return [esc(rot), Array.isArray(v) ? v.map(f).join('; ') : f(v)];
+  }), [1]);
+  h += `<h3>Cenários de falha</h3>` + tabelaRel(['Falha', 'Lote', 'Chapa inicial', 'Duração'],
+    p.falhas.filter(f => f.ativa).map(f => { const u = Motor.FALHAS[f.tipo].unidade; return [esc(Motor.FALHAS[f.tipo].nome), f.lote,
+      u === 'lote' ? '-' : mil(f.chapa), u === 'lote' ? 'lote inteiro' : `${mil(f.duracao)} ${u === 's' ? 's' : u}`]; }), [1, 2, 3]);
+
+  h += `<h2>2. Resumo</h2>` + tabelaRel(['Indicador', 'Corte mecanizado', 'Automático com gêmeo'], [
+    ['Conformidade (tolerância do lote)', fmt(tot.mec.conf_tol_pct, 2) + '%', fmt(tot.gemeo.conf_tol_pct, 2) + '%'],
+    ['Voltas por chapa', fmt(tot.mec.voltas_media, 1), fmt(tot.gemeo.voltas_media, 1)],
+    ['Chapas por hora', fmt(tot.mec.chapas_hora, 1), fmt(tot.gemeo.chapas_hora, 1)],
+    ['Economia de material', '-', fmt(tot.gemeo.economia_pct, 2) + '%'],
+    ['Chapas economizadas', '-', fmt0(tot.gemeo.chapas_economizadas)],
+    ['Completude da trilha de eventos', fmt(tot.mec.completude_trilha_pct, 3) + '%', fmt(tot.gemeo.completude_trilha_pct, 3) + '%'],
+    ['Eventos retidos na borda e entregues depois', mil(tot.mec.eventos_atrasados), mil(tot.gemeo.eventos_atrasados)]
+  ], [1, 2]);
+
+  const linhasLote = [];
+  sim.ind.lotes.forEach(o => POL.forEach((pol, j) => {
+    const q = o.pol[pol];
+    linhasLote.push([j === 0 ? `${o.lote}: ${fmt(o.espessura_mm, 1)} mm` : '', esc(NOME[pol]), fmt(q.conf_tol_pct, 2) + '%', fmt(q.conf10_pct, 1) + '%', fmt(q.conf5_pct, 1) + '%',
+      fmt(q.media_mm, 2), fmt(q.dp_mm, 3), fmt(q.voltas_media, 1), fmt(q.chapas_hora, 1), pol === 'mec' ? '-' : fmt(q.economia_pct, 2) + '%', pol === 'mec' ? '-' : fmt0(q.chapas_economizadas)]);
+  }));
+  h += `<h2>3. Resultados por lote</h2>` + tabelaRel(['Lote', 'Forma de corte', 'Conformidade', 'Conf. 10%', 'Conf. 5%', 'Média (mm)', 'Desvio (mm)', 'Voltas', 'Chapas/h', 'Economia', 'Chapas econ.'],
+    linhasLote, [2, 3, 4, 5, 6, 7, 8, 9, 10]);
+
+  h += `<h2>4. Figuras</h2><div class="bloco"><h3>Distribuição da espessura final por lote (% da nominal)</h3>${svg(specF5(T))}</div>
+<div class="bloco"><h3>Economia de material por espessura: automático com gêmeo frente ao mecanizado</h3>${svg(specF6(T))}</div>`;
+  p.lotes.forEach((l, li) => {
+    h += `<div class="bloco"><h3>Lote ${li + 1}: ${fmt(l.espessura_mm, 0)} mm. Últimas chapas em formação, dispersão da espessura final e lâmina com alarmes</h3>
+${svg(specFormacao(T, { li }))}${svg(specDispersao(T, { li }))}${svg(specLamina(T, { li }))}</div>`;
+  });
+
+  h += `<h2>5. Falhas, alarmes e setpoints</h2><h3>Falhas detectadas pelo gêmeo</h3>` + tabelaRel(
+    ['Falha', 'Severidade', 'Lote', 'Início (chapa)', 'Até a detecção', 'Chapas', 'Fora da tolerância (mecanizado / com gêmeo)'],
+    sim.falhas.map(f => [esc(f.nome), NOME_SEV[f.sev], f.lote, f.unidade === 'lote' ? '-' : mil(f.chapa), f.detectada ? fmtLat(f.latencia_s) : 'não detectada', mil(f.chapas), `${f.fora_tol.mec} / ${f.fora_tol.gemeo}`]),
+    [2, 3, 4, 5, 6]);
+  h += `<h3>Alarmes emitidos para o operador</h3>` + tabelaRel(['Instante', 'Severidade', 'Alarme', 'Lote', 'Chapa', 'Detalhe', 'Até a detecção'],
+    sim.res.gemeo.alarmes.map(a => [fmtTempo(a.t), NOME_SEV[a.sev], esc(a.nome), a.lote, mil(a.chapa), esc(a.msg), fmtLat(a.latencia_s)]), [3, 4, 6]);
+  h += `<h3>Setpoints enviados pelo gêmeo</h3>` + tabelaRel(['Instante', 'Lote', 'Chapa', 'Setpoint (mm)', 'Motivo'],
+    sim.res.gemeo.setpoints.map(s => [fmtTempo(s.t), s.lote, mil(s.chapa), fmt(s.S, 2), esc(s.motivo)]), [1, 2, 3]);
+
+  h += `<h2>6. Notas</h2><p class="nota">Corte mecanizado: comandado quando a chapa atinge o rolo auxiliar, regulado no nominal; sem sincronismo com o cilindro, por batimento uma chapa a cada ${p.mecanico.batimento_cada} sai com ${p.mecanico.laminas_extra.join(' ou ')} lâminas a mais. Corte automático com gêmeo: o controlador, sincronizado com o cilindro, corta quando a espessura medida está mais perto do setpoint do que estará após mais uma volta; o gêmeo programa setpoint, diâmetro e camadas na troca de lote, reestima o regime da massa e emite alarmes. Um corte automático bem ajustado manualmente teria o mesmo resultado; o gêmeo mantém esse ajuste de forma contínua. Redução máxima do setpoint abaixo do nominal: ${fmtEixo(p.gemeo.reducao_max_setpoint_pct ?? 100)}%.</p>`;
+  return h + '</body></html>';
+}
+$('#relatorio').addEventListener('click', () => {
+  if (!sim) return;
+  baixar(new Blob([gerarRelatorio()], { type: 'text/html' }), 'relatorio_simulacao.html');
+});
+
 /* ---------- aba 3: painel do gêmeo ---------- */
 const painel = { lote: 0, cursor: 0, tocando: false, relogio: null, tSim: 0 };
 function inicioLote(li) { let o = 0; for (let i = 0; i < li; i++) o += sim.pcp.lotes[i].chapas; return o; }
@@ -781,10 +860,12 @@ function decimar(pts, max) {
   return out;
 }
 const CHAPAS_FORMACAO = 6;
-function janelaPainel() {
+// Janela do painel; o relatório passa um lote inteiro em `fixo` ({ li }).
+function janelaPainel(fixo) {
+  if (fixo) { const l = sim.pcp.lotes[fixo.li]; return { li: fixo.li, l, o: inicioLote(fixo.li), c: l.chapas, ini: 0, fim: l.chapas }; }
   const l = sim.pcp.lotes[painel.lote], c = painel.cursor;
   const jan = Number($('#p-janela').value), ini = jan ? Math.max(0, c - jan) : 0;
-  return { l, o: inicioLote(painel.lote), c, ini, fim: jan ? Math.max(ini + jan, c) : l.chapas };
+  return { li: painel.lote, l, o: inicioLote(painel.lote), c, ini, fim: jan ? Math.max(ini + jan, c) : l.chapas };
 }
 // Espessura acumulada volta a volta (dente de serra): sobe até o corte e volta a zero.
 function denteDeSerra(pol, o, ini, fim, tv) {
@@ -798,8 +879,8 @@ function denteDeSerra(pol, o, ini, fim, tv) {
   }
   return pts;
 }
-function specFormacao(T) {
-  const { l, o, c } = janelaPainel(), li = painel.lote;
+function specFormacao(T, fixo) {
+  const { l, o, c, li } = janelaPainel(fixo);
   const ini = Math.max(0, c - CHAPAS_FORMACAO), tol = l.tolerancia_pct / 100, Tn = l.espessura_mm;
   const pm = denteDeSerra('mec', o, ini, c, l.tempo_volta_s), pg = denteDeSerra('gemeo', o, ini, c, l.tempo_volta_s);
   const maxE = Math.max(Tn * (1 + tol), ...pm.map(p => p[1]), ...pg.map(p => p[1]));
@@ -819,8 +900,8 @@ function specFormacao(T) {
       Object.assign(base(`Corte automático com gêmeo (setpoint ${fmt(S, 2)} mm)`, pg, 'gemeo', [{ y: Tn, traco: '3 3' }, { y: S, cor: T.setp, larg: 1.5 }]), { x: W / 2 })
     ] };
 }
-function specDispersao(T) {
-  const { l, o, c, ini } = janelaPainel(), li = painel.lote, tol = l.tolerancia_pct / 100, Tn = l.espessura_mm;
+function specDispersao(T, fixo) {
+  const { l, o, c, ini, li } = janelaPainel(fixo), tol = l.tolerancia_pct / 100, Tn = l.espessura_mm;
   const BIN = 0.05, cont = {}, n = {};
   let maxF = Tn * (1 + tol);
   for (const pol of ['mec', 'gemeo']) {
@@ -854,8 +935,8 @@ function specDispersao(T) {
         { nome: NOME.gemeo, pontos: sg, degrau: true, cor: T.pol.gemeo.cor, traco: T.pol.gemeo.traco, larg: T.pol.gemeo.larg }
       ] }] };
 }
-function specLamina(T) {
-  const { l, o, c, ini, fim } = janelaPainel(), li = painel.lote, r = sim.res.gemeo, mu = l.lamina_mm;
+function specLamina(T, fixo) {
+  const { l, o, c, ini, fim, li } = janelaPainel(fixo), r = sim.res.gemeo, mu = l.lamina_mm;
   const lam = []; for (let i = ini; i < c; i++) lam.push([i + 1, r.lamina[o + i]]);
   const al = r.alarmes.filter(a => a.lote === li + 1 && a.chapa < c && a.chapa >= ini);
   const W = 1120, H = 220;
