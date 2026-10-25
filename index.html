@@ -58,6 +58,8 @@
   section[hidden] { display: none; }
   .cartao { background: var(--surface-1); border: 1px solid var(--border); border-radius: 10px; padding: 16px; margin-bottom: 16px; }
   .cartao h2 { font-size: 16px; margin: 0 0 4px; font-weight: 650; }
+  .cartao.destaque { border: 2px solid var(--accent); }
+  td.melhora { color: var(--good-text); font-weight: 650; }
   .cartao p.nota { color: var(--text-secondary); margin: 0 0 12px; font-size: 13px; }
   .grade2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
   .rolagem { overflow-x: auto; }
@@ -186,6 +188,12 @@
     </div>
   </div>
   <div class="blocos" id="blocos-res"></div>
+
+  <div class="cartao destaque">
+    <h2>Entrega dos objetivos da visão de Negócio</h2>
+    <p class="nota">Objetivos de negócio do gêmeo digital e o resultado obtido nesta simulação do PCP, do corte mecanizado para o corte automático com gêmeo.</p>
+    <div class="rolagem"><table id="tab-negocio"></table></div>
+  </div>
 
   <div class="cartao">
     <div class="fig-cab"><div><h2>Figura do artigo</h2><p class="nota">Uma figura em quatro partes, lote de 20 mm: (a) chapas em formação, (b) dispersão da espessura final, (c) economia por espessura (todos os lotes) e (d) lâmina e alarmes do gêmeo.</p></div><div class="acoes"><button class="b peq" data-png="fart" data-cor="1">Baixar PNG (cor)</button><button class="b peq" data-png="fart">Baixar PNG (cinza)</button></div></div>
@@ -663,7 +671,31 @@ function desenharResultados() {
   });
   $('#tab-falhas-res').innerHTML = hf + '</tbody>';
 
+  desenharNegocio();
   render('f5', specF5); render('f6', specF6); render('fart', specArtigo);
+}
+// Entrega dos objetivos da visão de Negócio: [objetivo, indicador, mecanizado, com GD, variação].
+function entregaNegocio() {
+  const t = sim.ind.total.pol, m = t.mec, g = t.gemeo, lotes = sim.ind.lotes;
+  const faixa = (pol) => { const v = lotes.map(o => o.pol[pol].dp_mm); return `${fmt(Math.min(...v), 2)} a ${fmt(Math.max(...v), 2)} mm`; };
+  const dpVar = 100 * (lotes.reduce((s, o) => s + o.pol.gemeo.dp_mm / o.pol.mec.dp_mm, 0) / lotes.length - 1);
+  const rel = (a, b) => (b / a - 1) * 100, sinal = (x, d = 1) => (x > 0 ? '+' : '') + fmt(x, d) + '%';
+  const det = sim.falhas.filter(f => f.detectada), lats = det.map(f => f.latencia_s).filter(x => x !== null);
+  return [
+    ['Atender a especificação mais estreita do negócio', 'Chapas na faixa do negócio', fmt(m.conf_neg_pct, 2) + '%', fmt(g.conf_neg_pct, 2) + '%', sinal(g.conf_neg_pct - m.conf_neg_pct, 2).replace('%', ' p.p.')],
+    ['Respeitar a norma', 'Chapas dentro da tolerância da norma', fmt(m.conf_tol_pct, 2) + '%', fmt(g.conf_tol_pct, 2) + '%', sinal(g.conf_tol_pct - m.conf_tol_pct, 2).replace('%', ' p.p.')],
+    ['Melhorar o alinhamento entre chapas', 'Desvio-padrão da espessura final por lote (variação média)', faixa('mec'), faixa('gemeo'), sinal(dpVar)],
+    ['Reduzir camadas por chapa', 'Voltas por chapa', fmt(m.voltas_media, 1), fmt(g.voltas_media, 1), sinal(rel(m.voltas_media, g.voltas_media))],
+    ['Reduzir o consumo de material', 'Material frente ao corte mecanizado', 'referência', `${fmt0(g.chapas_economizadas)} chapas economizadas`, sinal(-g.economia_pct)],
+    ['Reduzir o tempo de execução', 'Tempo médio de formação por chapa', fmt(3600 / m.chapas_hora, 1) + ' s', fmt(3600 / g.chapas_hora, 1) + ' s', sinal(rel(3600 / m.chapas_hora, 3600 / g.chapas_hora))],
+    ['Aumentar a produtividade e o lucro', 'Chapas por hora', fmt(m.chapas_hora, 1), fmt(g.chapas_hora, 1), sinal(rel(m.chapas_hora, g.chapas_hora))],
+    ['Monitorar e detectar falhas', 'Falhas detectadas e tempo até a detecção', '-', `${det.length} de ${sim.falhas.length}` + (lats.length ? `, de ${fmtLat(Math.min(...lats))} a ${fmtLat(Math.max(...lats))}` : ''), '-']
+  ];
+}
+function desenharNegocio() {
+  const cab = ['Objetivo da visão de Negócio', 'Indicador', 'Mecanizado', 'Com gêmeo', 'Variação'];
+  $('#tab-negocio').innerHTML = `<thead><tr>${cab.map((c, j) => `<th class="${j >= 2 ? 'num' : ''}">${esc(c)}</th>`).join('')}</tr></thead><tbody>` +
+    entregaNegocio().map(l => `<tr>${l.map((v, j) => `<td class="${j >= 2 ? 'num' : ''}${j === 4 && v !== '-' ? ' melhora' : ''}">${esc(v)}</td>`).join('')}</tr>`).join('') + '</tbody>';
 }
 function legPol(T, pols) { return pols.map(pol => ({ nome: NOME[pol], cor: T.pol[pol].cor, traco: T.pol[pol].traco, larg: T.pol[pol].larg })); }
 function specF5(T) {
@@ -796,7 +828,7 @@ body{font:12px/1.45 Arial,Helvetica,sans-serif;color:#000;background:#fff;margin
 h1{font-size:19px;margin:0 0 4px}h2{font-size:15px;margin:24px 0 6px;border-bottom:1px solid #888;padding-bottom:3px}h3{font-size:13px;margin:16px 0 4px}
 table{border-collapse:collapse;width:100%;margin:6px 0 10px}th,td{border-bottom:1px solid #ccc;padding:3px 6px;text-align:left;vertical-align:top}
 th{background:#efefef}.n{text-align:right;font-variant-numeric:tabular-nums}svg{width:100%;height:auto;display:block;margin:4px 0 10px}
-.nota{color:#222}.bloco{page-break-inside:avoid}@media print{body{margin:0 auto}h2{page-break-after:avoid}}
+.nota{color:#222}.bloco{page-break-inside:avoid}.negocio{border:2px solid #000;padding:2px 12px 6px;margin:20px 0;page-break-inside:avoid}.negocio h2{margin-top:10px}@media print{body{margin:0 auto}h2{page-break-after:avoid}}
 </style></head><body>`;
   h += `<h1>Relatório da simulação: gêmeo digital na formação de chapas cimentícias</h1>
 <p class="nota">Gerado em ${esc(agora)}. Simulação virtual com dados sintéticos e parâmetros ilustrativos; semente ${p.semente}; ${mil(sim.res.mec.n)} chapas em cada forma de corte (corte mecanizado e corte automático com gêmeo digital).</p>`;
@@ -813,7 +845,11 @@ th{background:#efefef}.n{text-align:right;font-variant-numeric:tabular-nums}svg{
     p.falhas.filter(f => f.ativa).map(f => { const u = Motor.FALHAS[f.tipo].unidade; return [esc(Motor.FALHAS[f.tipo].nome), f.lote,
       u === 'lote' ? '-' : mil(f.chapa), u === 'lote' ? 'lote inteiro' : `${mil(f.duracao)} ${u === 's' ? 's' : u}`]; }), [1, 2, 3]);
 
-  h += `<h2>2. Resumo</h2>` + tabelaRel(['Indicador', 'Corte mecanizado', 'Automático com gêmeo'], [
+  h += `<div class="negocio"><h2>2. Entrega dos objetivos da visão de Negócio</h2><p class="nota">Objetivos de negócio do gêmeo digital e o resultado obtido nesta simulação do PCP, do corte mecanizado para o corte automático com gêmeo.</p>` +
+    tabelaRel(['Objetivo da visão de Negócio', 'Indicador', 'Mecanizado', 'Com gêmeo', 'Variação'],
+      entregaNegocio().map(l => l.map((v, j) => j === 4 && v !== '-' ? `<b>${esc(v)}</b>` : esc(v))), [2, 3, 4]) + '</div>';
+
+  h += `<h2>3. Resumo dos indicadores</h2>` + tabelaRel(['Indicador', 'Corte mecanizado', 'Automático com gêmeo'], [
     ['Chapas dentro da norma (tolerância absoluta)', fmt(tot.mec.conf_tol_pct, 2) + '%', fmt(tot.gemeo.conf_tol_pct, 2) + '%'],
     ['Chapas na faixa do negócio', fmt(tot.mec.conf_neg_pct, 2) + '%', fmt(tot.gemeo.conf_neg_pct, 2) + '%'],
     ['Voltas por chapa', fmt(tot.mec.voltas_media, 1), fmt(tot.gemeo.voltas_media, 1)],
@@ -830,10 +866,10 @@ th{background:#efefef}.n{text-align:right;font-variant-numeric:tabular-nums}svg{
     linhasLote.push([j === 0 ? `${o.lote}: ${fmt(o.espessura_mm, 1)} mm` : '', esc(NOME[pol]), fmt(q.conf_tol_pct, 2) + '%', fmt(q.conf_neg_pct, 2) + '%',
       fmt(q.media_mm, 2), fmt(q.dp_mm, 3), fmt(q.voltas_media, 1), fmt(q.chapas_hora, 1), pol === 'mec' ? '-' : fmt(q.economia_pct, 2) + '%', pol === 'mec' ? '-' : fmt0(q.chapas_economizadas)]);
   }));
-  h += `<h2>3. Resultados por lote</h2>` + tabelaRel(['Lote', 'Forma de corte', 'Dentro da norma', 'Na faixa do negócio', 'Média (mm)', 'Desvio (mm)', 'Voltas', 'Chapas/h', 'Economia', 'Chapas econ.'],
+  h += `<h2>4. Resultados por lote</h2>` + tabelaRel(['Lote', 'Forma de corte', 'Dentro da norma', 'Na faixa do negócio', 'Média (mm)', 'Desvio (mm)', 'Voltas', 'Chapas/h', 'Economia', 'Chapas econ.'],
     linhasLote, [2, 3, 4, 5, 6, 7, 8, 9]);
 
-  h += `<h2>4. Figuras</h2><div class="bloco"><h3>Figura do artigo: formação, dispersão, economia e alarmes</h3>${svg(specArtigo(T))}</div>
+  h += `<h2>5. Figuras</h2><div class="bloco"><h3>Figura do artigo: formação, dispersão, economia e alarmes</h3>${svg(specArtigo(T))}</div>
 <div class="bloco"><h3>Distribuição da espessura final por lote (% da nominal)</h3>${svg(specF5(T))}</div>
 <div class="bloco"><h3>Economia de material por espessura: automático com gêmeo frente ao mecanizado</h3>${svg(specF6(T))}</div>`;
   p.lotes.forEach((l, li) => {
@@ -841,7 +877,7 @@ th{background:#efefef}.n{text-align:right;font-variant-numeric:tabular-nums}svg{
 ${svg(specFormacao(T, { li }))}${svg(specDispersao(T, { li }))}${svg(specLamina(T, { li }))}</div>`;
   });
 
-  h += `<h2>5. Falhas, alarmes e setpoints</h2><h3>Falhas detectadas pelo gêmeo</h3>` + tabelaRel(
+  h += `<h2>6. Falhas, alarmes e setpoints</h2><h3>Falhas detectadas pelo gêmeo</h3>` + tabelaRel(
     ['Falha', 'Severidade', 'Lote', 'Início (chapa)', 'Até a detecção', 'Chapas', 'Fora da tolerância (mecanizado / com gêmeo)'],
     sim.falhas.map(f => [esc(f.nome), NOME_SEV[f.sev], f.lote, f.unidade === 'lote' ? '-' : mil(f.chapa), f.detectada ? fmtLat(f.latencia_s) : 'não detectada', mil(f.chapas), `${f.fora_tol.mec} / ${f.fora_tol.gemeo}`]),
     [2, 3, 4, 5, 6]);
@@ -850,7 +886,7 @@ ${svg(specFormacao(T, { li }))}${svg(specDispersao(T, { li }))}${svg(specLamina(
   h += `<h3>Setpoints enviados pelo gêmeo</h3>` + tabelaRel(['Instante', 'Lote', 'Chapa', 'Setpoint (mm)', 'Motivo'],
     sim.res.gemeo.setpoints.map(s => [fmtTempo(s.t), s.lote, mil(s.chapa), fmt(s.S, 2), esc(s.motivo)]), [1, 2, 3]);
 
-  h += `<h2>6. Notas</h2><p class="nota">Corte mecanizado: comandado quando a chapa atinge o rolo auxiliar, regulado no nominal; sem sincronismo com o cilindro, por batimento uma chapa a cada ${p.mecanico.batimento_cada} sai com ${p.mecanico.laminas_extra.join(' ou ')} lâminas a mais. Corte automático com gêmeo: o controlador, sincronizado com o cilindro, corta quando a espessura medida está mais perto do setpoint do que estará após mais uma volta; o gêmeo programa setpoint, diâmetro e camadas na troca de lote, reestima o regime da massa e emite alarmes. Um corte automático bem ajustado manualmente teria o mesmo resultado; o gêmeo mantém esse ajuste de forma contínua. O gêmeo envia o menor setpoint que mantém a meta de conformidade, aproveitando a tolerância até o limite inferior; margem de segurança acima do limite inferior: ${fmtEixo(p.gemeo.margem_limite_inferior_pct || 0)}% da nominal. Chapas fora da tolerância são recicladas pelo controle de qualidade.</p>`;
+  h += `<h2>7. Notas</h2><p class="nota">Corte mecanizado: comandado quando a chapa atinge o rolo auxiliar, regulado no nominal; sem sincronismo com o cilindro, por batimento uma chapa a cada ${p.mecanico.batimento_cada} sai com ${p.mecanico.laminas_extra.join(' ou ')} lâminas a mais. Corte automático com gêmeo: o controlador, sincronizado com o cilindro, corta quando a espessura medida está mais perto do setpoint do que estará após mais uma volta; o gêmeo programa setpoint, diâmetro e camadas na troca de lote, reestima o regime da massa e emite alarmes. Um corte automático bem ajustado manualmente teria o mesmo resultado; o gêmeo mantém esse ajuste de forma contínua. O gêmeo envia o menor setpoint que mantém a meta de conformidade, aproveitando a tolerância até o limite inferior; margem de segurança acima do limite inferior: ${fmtEixo(p.gemeo.margem_limite_inferior_pct || 0)}% da nominal. Chapas fora da tolerância são recicladas pelo controle de qualidade.</p>`;
   return h + '</body></html>';
 }
 $('#relatorio').addEventListener('click', () => {

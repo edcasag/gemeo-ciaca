@@ -7,7 +7,7 @@ Simulador virtual que acompanha um artigo sobre a modelagem de um gêmeo digital
 Abra `index.html` no navegador, localmente ou pelo GitHub Pages do repositório. Não há nada a instalar.
 
 1. **PCP**: edite os lotes do plano de produção (espessura nominal, chapas, lâmina média, tempo por volta, tolerância, diâmetro da prensa), os cenários de falha e os parâmetros. Clique em **Simular**.
-2. **Resultados**: comparação por lote entre o corte mecanizado e o corte automático com gêmeo, figuras exportáveis em PNG (escala de cinza), falhas detectadas, relatório completo da simulação (HTML para imprimir ou salvar em PDF) e CSV das chapas simuladas.
+2. **Resultados**: quadro de entrega dos objetivos da visão de Negócio (faixa do negócio, norma, alinhamento, camadas, material, tempo de execução, produtividade e falhas), comparação por lote entre o corte mecanizado e o corte automático com gêmeo, figuras exportáveis em PNG (escala de cinza), falhas detectadas, relatório completo da simulação (HTML para imprimir ou salvar em PDF) e CSV das chapas simuladas.
 3. **Painel do gêmeo**: proposta de painel para o gêmeo conectado à máquina, com reprodução acelerada, indicadores de negócio, *setpoint* enviado e alarmes para o operador.
 
 `testes.html` executa a verificação funcional do motor e mostra um resumo dos resultados.
@@ -31,7 +31,7 @@ A pasta `resultados/` traz a simulação do PCP padrão (`pcp_padrao.json`, seme
 
 | Arquivo | Conteúdo |
 |---|---|
-| `resultados/relatorio_simulacao_padrao.html` | Relatório completo: PCP, parâmetros, indicadores, tabelas por lote, figuras, falhas, alarmes e *setpoints* enviados |
+| `resultados/relatorio_simulacao_padrao.html` | Relatório completo: PCP, parâmetros, entrega dos objetivos da visão de Negócio, indicadores, tabelas por lote, figuras, falhas, alarmes e *setpoints* enviados |
 | `resultados/resumo_por_lote.csv` | Indicadores por lote e forma de corte, com o total |
 | `resultados/chapas_simuladas.zip` | CSV com uma linha por chapa simulada (52.000 linhas) |
 
