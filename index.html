@@ -192,7 +192,7 @@
   </div>
 
   <div class="cartao">
-    <div class="fig-cab"><div><h2>Conformidade e economia por espessura</h2><p class="nota">Conformidade pela tolerância de cada lote e economia de material frente ao corte mecânico.</p></div><button class="b peq" data-png="f6">Baixar PNG (cinza)</button></div>
+    <div class="fig-cab"><div><h2>Economia de material por espessura</h2><p class="nota">Em relação ao corte mecânico. A conformidade de cada lote está na tabela acima.</p></div><button class="b peq" data-png="f6">Baixar PNG (cinza)</button></div>
     <div class="fig" id="f6"></div>
   </div>
 
@@ -696,11 +696,10 @@ function specF6(T) {
   const grupos = sim.ind.lotes.map(o => ({ rot: `${fmt(o.espessura_mm, 0)} mm`, v: o.pol }));
   grupos.push({ rot: 'Total', v: sim.ind.total.pol });
   const econMax = Math.max(1, ...grupos.map(g => Math.max(g.v.auto.economia_pct, g.v.gemeo.economia_pct)));
-  const legenda = POL.map(pol => ({ nome: NOME[pol], cor: corBarra(T, pol), larg: 8 }));
-  return { W, H: 26 + 2 * ph, legenda, arquivo: 'figura_conformidade_economia', rotulo: 'Conformidade e economia por espessura',
+  const legenda = ['auto', 'gemeo'].map(pol => ({ nome: NOME[pol], cor: corBarra(T, pol), larg: 8 }));
+  return { W, H: 26 + ph, legenda, arquivo: 'figura_economia_por_espessura', rotulo: 'Economia de material por espessura',
     paineis: [
-      painelBarras(T, 26, ph, W, 'Conformidade (rótulo nas barras abaixo de 100%)', 'chapas conformes (%)', grupos, POL, 'conf_tol_pct', 110, 1, v => v < 99.95),
-      painelBarras(T, 26 + ph, ph, W, 'Economia de material frente ao corte mecânico', 'economia (%)', grupos, ['auto', 'gemeo'], 'economia_pct', Math.ceil(econMax * 1.25 / 2) * 2, 1)
+      painelBarras(T, 26, ph, W, '', 'economia de material (%)', grupos, ['auto', 'gemeo'], 'economia_pct', Math.ceil(econMax * 1.25 / 2) * 2, 1)
     ] };
 }
 function iconeSev(sev) {
