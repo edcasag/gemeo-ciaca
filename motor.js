@@ -224,6 +224,7 @@
       final: new Float32Array(total), voltas: new Uint16Array(total),
       setpoint: new Float32Array(total), tFim: new Float64Array(total),
       lamina: new Float32Array(total), flags: new Uint8Array(total),
+      v0: new Uint32Array(total + 1),   // índice da primeira volta de cada chapa em espVolta
       alarmes: [], setpoints: [], refs: 0,
       eventos: { esperados: 0, registrados: 0, atrasados: 0 },
       deteccoes: {}
@@ -232,6 +233,7 @@
     const ampNom = amplitudeNominal(pcp);
     const amostrasVolta = (tv) => Math.max(1, Math.round(tv / AMOSTRA_S));
     let t = 0, g = 0;
+    const espVolta = [];                  // espessura acumulada ao fim de cada volta
     let nuvemAte = -1, nuvemInicio = -1, nuvemAlarmada = false;
     const ultimoSintoma = {}, inicioFalha = {};
 
@@ -298,10 +300,12 @@
 
         let E = 0, Em = 0, k = 0, extra = -1, soma = 0, mecCut = false, bat = false, perdida = false;
         const kMax = Math.ceil(3 * T / mu) + 200;
+        r.v0[g] = espVolta.length;
         for (;;) {
           k++;
           const L = laminaEm(pcp, mu, t, fl, li, i, k, semente);
           E += L; soma += L; t += tv;
+          espVolta.push(E);
           r.refs++;
           // Dados do controlador principal nesta volta.
           let med = E, medOk = true, chegou = true;
@@ -406,6 +410,8 @@
       }
     }
     r.tTotal = t;
+    r.v0[total] = espVolta.length;
+    r.espVolta = Float32Array.from(espVolta);
     delete r._falhaNuvem;
     return r;
   }

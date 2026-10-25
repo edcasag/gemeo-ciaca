@@ -235,8 +235,16 @@
   </div>
   <div class="blocos" id="blocos-painel"></div>
   <div class="cartao">
-    <div class="fig-cab"><div><h2>Chapas do lote</h2><p class="nota">Espessura final de cada chapa, setpoint enviado pelo gêmeo e alarmes (linhas verticais); abaixo, a lâmina média de cada chapa.</p></div><button class="b peq" data-png="fp">Baixar PNG (cinza)</button></div>
-    <div class="fig" id="fp"></div>
+    <div class="fig-cab"><div><h2>Chapas em formação</h2><p class="nota">Espessura acumulada volta a volta nas últimas chapas: sobe até o corte e volta a zero. À esquerda, o corte mecânico pelo rolo; à direita, o corte automático no setpoint do gêmeo.</p></div><button class="b peq" data-png="fp1">Baixar PNG (cinza)</button></div>
+    <div class="fig" id="fp1"></div>
+  </div>
+  <div class="cartao">
+    <div class="fig-cab"><div><h2>Dispersão da espessura final</h2><p class="nota">Chapas por faixa de 0,05 mm. Faixa sombreada: tolerância do lote; tracejado: nominal; linha contínua: setpoint atual do gêmeo.</p></div><button class="b peq" data-png="fp2">Baixar PNG (cinza)</button></div>
+    <div class="fig" id="fp2"></div>
+  </div>
+  <div class="cartao">
+    <div class="fig-cab"><div><h2>Lâmina e alarmes</h2><p class="nota">Lâmina média de cada chapa; as linhas verticais marcam os alarmes emitidos pelo gêmeo.</p></div><button class="b peq" data-png="fp3">Baixar PNG (cinza)</button></div>
+    <div class="fig" id="fp3"></div>
   </div>
   <div class="grade2">
     <div class="cartao"><h2>Alarmes para o operador</h2><ul class="alarmes" id="p-alarmes"></ul></div>
@@ -791,36 +799,91 @@ function decimar(pts, max) {
   }
   return out;
 }
-function specPainel(T) {
-  const li = painel.lote, l = sim.pcp.lotes[li], o = inicioLote(li), c = painel.cursor;
+const CHAPAS_FORMACAO = 6;
+function janelaPainel() {
+  const l = sim.pcp.lotes[painel.lote], c = painel.cursor;
   const jan = Number($('#p-janela').value), ini = jan ? Math.max(0, c - jan) : 0;
-  const xMin = ini, n = jan ? Math.max(ini + jan, c) : l.chapas;
-  const tol = l.tolerancia_pct / 100, Tn = l.espessura_mm;
-  const serieEsp = (pol) => { const r = sim.res[pol], pts = []; for (let i = ini; i < c; i++) pts.push([i + 1, r.final[o + i]]); return decimar(pts, 2400); };
-  const r = sim.res.gemeo;
-  const sp = []; for (let i = ini; i < c; i++) sp.push([i + 1, r.setpoint[o + i]]);
-  const lam = []; for (let i = ini; i < c; i++) lam.push([i + 1, r.lamina[o + i]]);
-  const alarmesLote = r.alarmes.filter(a => a.lote === li + 1 && a.chapa < c && a.chapa >= ini);
-  const W = 1120, H = 470, yMin = Math.floor(Tn * (1 - tol - 0.04) * 2) / 2, yMax = Math.ceil(Tn * (1 + tol + 0.2) * 2) / 2;
-  const mu = l.lamina_mm;
-  return { W, H, arquivo: `figura_painel_lote${li + 1}`, rotulo: 'Chapas do lote: espessura final, setpoint e alarmes',
-    legenda: [...legPol(T, ['mec', 'gemeo']), { nome: 'Setpoint do gêmeo', cor: T.setp, traco: '5 3', larg: 1.5 },
-      { nome: `Nominal ${fmt(Tn, 1)} mm (faixa: tolerância de ${fmt(l.tolerancia_pct, 0)}%)`, cor: T.mudo, traco: '3 3', larg: 1 }],
+  return { l, o: inicioLote(painel.lote), c, ini, fim: jan ? Math.max(ini + jan, c) : l.chapas };
+}
+// Espessura acumulada volta a volta (dente de serra): sobe até o corte e volta a zero.
+function denteDeSerra(pol, o, ini, fim, tv) {
+  const r = sim.res[pol], pts = [];
+  const tBase = o + ini > 0 ? r.tFim[o + ini - 1] : 0;
+  for (let i = ini; i < fim; i++) {
+    const g = o + i, t0 = (g > 0 ? r.tFim[g - 1] : 0) - tBase, a = r.v0[g], b = r.v0[g + 1];
+    pts.push([t0, 0]);
+    for (let j = a; j < b; j++) pts.push([t0 + (j - a + 1) * tv, r.espVolta[j]]);
+    pts.push([t0 + (b - a) * tv, 0]);
+  }
+  return pts;
+}
+function specFormacao(T) {
+  const { l, o, c } = janelaPainel(), li = painel.lote;
+  const ini = Math.max(0, c - CHAPAS_FORMACAO), tol = l.tolerancia_pct / 100, Tn = l.espessura_mm;
+  const pm = denteDeSerra('mec', o, ini, c, l.tempo_volta_s), pg = denteDeSerra('gemeo', o, ini, c, l.tempo_volta_s);
+  const maxE = Math.max(Tn * (1 + tol), ...pm.map(p => p[1]), ...pg.map(p => p[1]));
+  const yMax = Math.ceil(maxE * 1.08), xMax = Math.max(1, pm.length ? pm[pm.length - 1][0] : 0, pg.length ? pg[pg.length - 1][0] : 0);
+  const S = c > 0 ? sim.res.gemeo.setpoint[o + c - 1] : Tn;
+  const W = 1120, H = 300;
+  const base = (titulo, pts, pol, linhas) => ({
+    y: 26, w: W / 2, h: H - 26, xMin: 0, xMax, yMin: 0, yMax, titulo, tituloX: 'tempo (s)', tituloY: 'espessura acumulada (mm)',
+    faixasY: [{ y0: Tn * (1 - tol), y1: Tn * (1 + tol) }], linhasY: linhas, fmtY: v => fmt(v, 0),
+    fmtDicaX: v => `t = ${fmt(v, 1)} s`, fmtDicaY: v => fmt(v, 2) + ' mm',
+    series: [{ nome: NOME[pol], pontos: pts, cor: T.pol[pol].cor, traco: T.pol[pol].traco, larg: T.pol[pol].larg }]
+  });
+  return { W, H, arquivo: `figura_formacao_lote${li + 1}`, rotulo: 'Chapas em formação: espessura acumulada volta a volta',
+    legenda: [...legPol(T, ['mec', 'gemeo']), { nome: 'Setpoint do gêmeo', cor: T.setp, larg: 1.5 }, { nome: `Nominal ${fmt(Tn, 1)} mm`, cor: T.mudo, traco: '3 3', larg: 1 }],
     paineis: [
-      { x: 0, y: 26, w: W, h: 300, xMin, xMax: n, yMin, yMax, tituloY: 'espessura final (mm)', fmtY: v => fmt(v, 1),
-        faixasY: [{ y0: Tn * (1 - tol), y1: Tn * (1 + tol) }], linhasY: [{ y: Tn, traco: '3 3' }],
-        fmtX: v => fmtEixo(v), fmtDicaX: v => `Chapa ${Math.round(v).toLocaleString('pt-BR')}`, fmtDicaY: v => fmt(v, 2) + ' mm',
-        marcadores: alarmesLote.map(a => ({ x: a.chapa + 1, cor: T.status[a.sev] })),
-        dicaExtra: (x) => { const a = alarmesLote.find(aa => Math.abs(aa.chapa + 1 - x) < Math.max(3, n / 400)); return a ? `<div class="lin">${iconeSev(a.sev)} ${esc(a.nome)}</div>` : ''; },
-        series: [
-          { nome: NOME.mec, pontos: serieEsp('mec'), cor: T.pol.mec.cor, traco: T.pol.mec.traco, larg: 1 },
-          { nome: NOME.gemeo, pontos: serieEsp('gemeo'), cor: T.pol.gemeo.cor, traco: T.pol.gemeo.traco, larg: 1.25 },
-          { nome: 'Setpoint', pontos: decimar(sp, 2400), degrau: true, cor: T.setp, traco: '5 3', larg: 1.5 }
-        ] },
-      { x: 0, y: 326, w: W, h: 144, xMin, xMax: n, yMin: Math.floor((mu - 0.2) * 20) / 20, yMax: Math.ceil((mu + 0.2) * 20) / 20, nY: 4,
-        tituloX: 'chapa do lote', tituloY: 'lâmina (mm)', fmtY: v => fmt(v, 2), fmtDicaX: v => `Chapa ${Math.round(v).toLocaleString('pt-BR')}`, fmtDicaY: v => fmt(v, 3) + ' mm',
-        series: [{ nome: 'Lâmina média da chapa', pontos: decimar(lam, 2400), cor: T.pol.gemeo.cor, larg: 1.25 }] }
+      Object.assign(base(`Corte mecânico (rolo no nominal)`, pm, 'mec', [{ y: Tn, traco: '3 3' }]), { x: 0 }),
+      Object.assign(base(`Corte automático com gêmeo (setpoint ${fmt(S, 2)} mm)`, pg, 'gemeo', [{ y: Tn, traco: '3 3' }, { y: S, cor: T.setp, larg: 1.5 }]), { x: W / 2 })
     ] };
+}
+function specDispersao(T) {
+  const { l, o, c, ini } = janelaPainel(), li = painel.lote, tol = l.tolerancia_pct / 100, Tn = l.espessura_mm;
+  const BIN = 0.05, cont = {}, n = {};
+  let maxF = Tn * (1 + tol);
+  for (const pol of ['mec', 'gemeo']) {
+    const r = sim.res[pol], m = new Map();
+    n[pol] = 0;
+    for (let i = ini; i < c; i++) {
+      const g = o + i; if (r.flags[g] & 4) continue;
+      const b = Math.floor(r.final[g] / BIN + 1e-9); m.set(b, (m.get(b) || 0) + 1); n[pol]++;
+      maxF = Math.max(maxF, r.final[g]);
+    }
+    cont[pol] = m;
+  }
+  const xMin = Math.floor((Tn * (1 - tol) - 0.3) * 2) / 2, xMax = Math.ceil((maxF + 0.2) * 2) / 2;
+  let yMax = 1;
+  const serie = (pol) => {
+    const pts = [];
+    for (let b = Math.floor(xMin / BIN); b <= Math.ceil(xMax / BIN); b++) { const v = cont[pol].get(b) || 0; pts.push([b * BIN, v]); yMax = Math.max(yMax, v); }
+    return pts;
+  };
+  const sm = serie('mec'), sg = serie('gemeo');
+  const S = c > 0 ? sim.res.gemeo.setpoint[o + c - 1] : Tn;
+  const W = 1120, H = 300;
+  return { W, H, arquivo: `figura_dispersao_lote${li + 1}`, rotulo: 'Dispersão da espessura final',
+    legenda: [...legPol(T, ['mec', 'gemeo']), { nome: 'Setpoint do gêmeo', cor: T.setp, larg: 1.5 }, { nome: `Nominal ${fmt(Tn, 1)} mm`, cor: T.mudo, traco: '3 3', larg: 1 }],
+    paineis: [{ x: 0, y: 26, w: W, h: H - 26, xMin, xMax, yMin: 0, yMax: Math.ceil(yMax * 1.1),
+      tituloX: `espessura final (mm), ${(n.gemeo || 0).toLocaleString('pt-BR')} chapas`, tituloY: 'chapas',
+      faixasX: [{ x0: Tn * (1 - tol), x1: Tn * (1 + tol) }], linhasX: [{ x: Tn, traco: '3 3' }, { x: S, cor: T.setp, larg: 1.5 }],
+      fmtX: v => fmt(v, 1), fmtY: v => fmtEixo(v), fmtDicaX: v => `${fmt(v, 2)} a ${fmt(v + BIN, 2)} mm`, fmtDicaY: v => fmt0(v) + ' chapas',
+      series: [
+        { nome: NOME.mec, pontos: sm, degrau: true, cor: T.pol.mec.cor, traco: T.pol.mec.traco, larg: T.pol.mec.larg },
+        { nome: NOME.gemeo, pontos: sg, degrau: true, cor: T.pol.gemeo.cor, traco: T.pol.gemeo.traco, larg: T.pol.gemeo.larg }
+      ] }] };
+}
+function specLamina(T) {
+  const { l, o, c, ini, fim } = janelaPainel(), li = painel.lote, r = sim.res.gemeo, mu = l.lamina_mm;
+  const lam = []; for (let i = ini; i < c; i++) lam.push([i + 1, r.lamina[o + i]]);
+  const al = r.alarmes.filter(a => a.lote === li + 1 && a.chapa < c && a.chapa >= ini);
+  const W = 1120, H = 220;
+  return { W, H, arquivo: `figura_lamina_alarmes_lote${li + 1}`, rotulo: 'Lâmina média por chapa e alarmes',
+    paineis: [{ x: 0, y: 4, w: W, h: H - 4, xMin: ini, xMax: fim, yMin: Math.floor((mu - 0.2) * 20) / 20, yMax: Math.ceil((mu + 0.2) * 20) / 20, nY: 4,
+      tituloX: 'chapa do lote', tituloY: 'lâmina (mm)', fmtY: v => fmt(v, 2), fmtDicaX: v => `Chapa ${Math.round(v).toLocaleString('pt-BR')}`, fmtDicaY: v => fmt(v, 3) + ' mm',
+      marcadores: al.map(a => ({ x: a.chapa + 1, cor: T.status[a.sev] })),
+      dicaExtra: (x) => { const a = al.find(aa => Math.abs(aa.chapa + 1 - x) < Math.max(3, (fim - ini) / 300)); return a ? `<div class="lin">${iconeSev(a.sev)} ${esc(a.nome)}</div>` : ''; },
+      series: [{ nome: 'Lâmina média da chapa', pontos: decimar(lam, 2400), cor: T.pol.gemeo.cor, larg: 1.25 }] }] };
 }
 function desenharPainel() {
   if (!sim || $('#aba-painel').hidden) return;
@@ -857,7 +920,7 @@ function desenharPainel() {
   $('#p-setpoints').innerHTML = sps.length ? sps.map(s => `<li><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><rect x="2" y="7" width="12" height="2" rx="1" fill="var(--text-secondary)"/></svg><div><div class="tit">${fmt(s.S, 2)} mm</div>
     <div class="det">${esc(s.motivo)}</div><div class="det">Chapa ${s.chapa.toLocaleString('pt-BR')}, ${fmtTempo(s.t)}</div></div></li>`).join('')
     : '<li class="vazio" style="display:block">Nenhum setpoint enviado ainda.</li>';
-  render('fp', specPainel);
+  render('fp1', specFormacao); render('fp2', specDispersao); render('fp3', specLamina);
 }
 
 /* ---------- início ---------- */
