@@ -188,7 +188,7 @@
   <div class="blocos" id="blocos-res"></div>
 
   <div class="cartao">
-    <div class="fig-cab"><div><h2>Figura do artigo</h2><p class="nota">Uma figura em quatro partes, lote de 20 mm: (a) chapas em formação, (b) dispersão da espessura final, (c) economia por espessura (todos os lotes) e (d) lâmina e alarmes do gêmeo.</p></div><button class="b peq" data-png="fart">Baixar PNG (cinza)</button></div>
+    <div class="fig-cab"><div><h2>Figura do artigo</h2><p class="nota">Uma figura em quatro partes, lote de 20 mm: (a) chapas em formação, (b) dispersão da espessura final, (c) economia por espessura (todos os lotes) e (d) lâmina e alarmes do gêmeo.</p></div><div class="acoes"><button class="b peq" data-png="fart" data-cor="1">Baixar PNG (cor)</button><button class="b peq" data-png="fart">Baixar PNG (cinza)</button></div></div>
     <div class="fig" id="fart"></div>
   </div>
 
@@ -373,7 +373,7 @@ document.addEventListener('click', (ev) => {
   if (!el) return;
   if (el.dataset.delLote !== undefined && pcp.lotes.length > 1) { pcp.lotes.splice(+el.dataset.delLote, 1); desenharLotes(); }
   if (el.dataset.delFalha !== undefined) { pcp.falhas.splice(+el.dataset.delFalha, 1); desenharFalhas(); }
-  if (el.dataset.png) exportarPNG(el.dataset.png);
+  if (el.dataset.png) exportarPNG(el.dataset.png, !!el.dataset.cor);
 });
 $('#add-lote').addEventListener('click', () => { pcp.lotes.push(Motor.copiar(pcp.lotes[pcp.lotes.length - 1])); desenharLotes(); });
 $('#add-falha').addEventListener('click', () => { pcp.falhas.push({ tipo: 'falta_massa', lote: 1, chapa: 0, duracao: 10, ativa: true }); desenharFalhas(); });
@@ -436,6 +436,13 @@ const TEMA_IMP = {
   status: { alerta: '#000000', serio: '#000000', critico: '#000000' },
   fonte: 'Arial, Helvetica, sans-serif'
 };
+// Versão colorida para publicação: fundo branco, poucas cores, legível também em cinza.
+const TEMA_COR = Object.assign({}, TEMA_IMP, {
+  faixa: 'rgba(42,120,214,0.08)', setp: '#333333', setpTraco: '7 2 2 2',
+  pol: { mec: { cor: '#8a8a8a', traco: '', larg: 1.5 }, auto: { cor: '#eb6834', traco: '', larg: 1.75 }, gemeo: { cor: '#2a78d6', traco: '', larg: 2 } },
+  seq: ['#86b6ef', '#5598e7', '#2a78d6', '#1c5cab', '#104281'], seqTraco: ['', '', '', '', ''],
+  status: { alerta: '#c98500', serio: '#ec835a', critico: '#d03b3b' }
+});
 function escala(d0, d1, r0, r1) {
   const k = (r1 - r0) / ((d1 - d0) || 1);
   const f = (v) => r0 + (v - d0) * k; f.inv = (p) => d0 + (p - r0) / k; return f;
@@ -599,12 +606,13 @@ function render(id, specFn) {
   cont.innerHTML = r.svg;
   ligarDica(cont, { W: spec.W, H: spec.H, meta: r.meta });
 }
-// SVG de uma figura no tema de impressão (escala de cinza, fundo branco).
-function svgImpressao(id) { return FIGURAS[id] ? figuraSVG(FIGURAS[id](TEMA_IMP), TEMA_IMP, true).svg : ''; }
-function exportarPNG(id) {
+// SVG de uma figura para publicação: escala de cinza (padrão) ou colorida.
+function svgImpressao(id, cor) { const T = cor ? TEMA_COR : TEMA_IMP; return FIGURAS[id] ? figuraSVG(FIGURAS[id](T), T, true).svg : ''; }
+function exportarPNG(id, cor) {
   const specFn = FIGURAS[id]; if (!specFn) return;
-  const spec = specFn(TEMA_IMP);
-  const { svg } = figuraSVG(spec, TEMA_IMP, true);
+  const T = cor ? TEMA_COR : TEMA_IMP;
+  const spec = specFn(T);
+  const { svg } = figuraSVG(spec, T, true);
   const img = new Image();
   img.onload = () => {
     const esc2 = 3, cv = document.createElement('canvas');
@@ -612,7 +620,7 @@ function exportarPNG(id) {
     const ctx = cv.getContext('2d');
     ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, cv.width, cv.height);
     ctx.drawImage(img, 0, 0, cv.width, cv.height);
-    cv.toBlob(b => baixar(b, `${spec.arquivo || id}.png`), 'image/png');
+    cv.toBlob(b => baixar(b, `${spec.arquivo || id}${cor ? '_cor' : ''}.png`), 'image/png');
   };
   img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
 }
@@ -763,7 +771,7 @@ function specArtigo(T) {
   ];
   return { W, H: y0 + Ha + Hb + Hd, arquivo: 'figura_artigo', rotulo: 'Figura do artigo: formação, dispersão, economia e alarmes',
     legenda: [...legPol(T, ['mec', 'gemeo']), { nome: 'Setpoint do gêmeo', cor: T.setp, traco: T.setpTraco, larg: 1.5 }, { nome: 'Nominal', cor: T.mudo, traco: '3 3', larg: 1 },
-      { nome: `Faixa do negócio (±${fmt(neg, 0)}%)`, cor: T.tinta2, traco: '1 3', larg: 1 }, { nome: 'Alarme', cor: T.status.critico, larg: 1.5 }],
+      { nome: `Faixa do negócio (±${fmt(neg, 0)}%)`, cor: T.tinta2, traco: '1 3', larg: 1 }, { nome: 'Alarme (cor pela severidade)', cor: T.status.serio, larg: 1.5 }],
     paineis };
 }
 
