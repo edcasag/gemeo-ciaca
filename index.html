@@ -191,8 +191,8 @@
     <div class="fig" id="f5"></div>
   </div>
 
-  <div class="cartao" style="max-width:760px">
-    <div class="fig-cab"><div><h2>Economia de material por lote</h2><p class="nota">Em relação ao corte mecânico.</p></div><button class="b peq" data-png="f6">Baixar PNG (cinza)</button></div>
+  <div class="cartao">
+    <div class="fig-cab"><div><h2>Conformidade e economia por espessura</h2><p class="nota">Conformidade pela tolerância de cada lote e economia de material frente ao corte mecânico.</p></div><button class="b peq" data-png="f6">Baixar PNG (cinza)</button></div>
     <div class="fig" id="f6"></div>
   </div>
 
@@ -200,11 +200,6 @@
     <h2>Falhas detectadas pelo gêmeo</h2>
     <p class="nota">Tempo até a detecção e chapas fora da tolerância durante a falha (mecânico / automático / com gêmeo).</p>
     <div class="rolagem"><table id="tab-falhas-res"></table></div>
-  </div>
-
-  <div class="cartao">
-    <div class="fig-cab"><div><h2>Setpoint, conformidade e economia</h2><p class="nota">Varredura do setpoint no gêmeo, regime nominal de cada lote. O gêmeo envia o menor setpoint que mantém a meta de conformidade.</p></div><button class="b peq" data-png="f7">Baixar PNG (cinza)</button></div>
-    <div class="fig" id="f7"></div>
   </div>
 
   <div class="cartao">
@@ -644,7 +639,7 @@ function desenharResultados() {
   });
   $('#tab-falhas-res').innerHTML = hf + '</tbody>';
 
-  render('f5', specF5); render('f6', specF6); render('f7', specF7);
+  render('f5', specF5); render('f6', specF6);
 }
 function legPol(T, pols) { return pols.map(pol => ({ nome: NOME[pol], cor: T.pol[pol].cor, traco: T.pol[pol].traco, larg: T.pol[pol].larg })); }
 function specF5(T) {
@@ -682,44 +677,30 @@ function specF5(T) {
   });
   return { W, H: 26 + linhas * ph, legenda: legPol(T, POL), paineis, arquivo: 'figura_distribuicao_espessura', rotulo: 'Distribuição da espessura final por lote' };
 }
-function specF6(T) {
-  const lotes = sim.ind.lotes, n = lotes.length, W = 560, H = 300;
-  const grupos = lotes.map(o => ({ rot: `${fmt(o.espessura_mm, 0)} mm`, v: { auto: o.pol.auto.economia_pct, gemeo: o.pol.gemeo.economia_pct } }));
-  grupos.push({ rot: 'Total', v: { auto: sim.ind.total.pol.auto.economia_pct, gemeo: sim.ind.total.pol.gemeo.economia_pct } });
-  const ymax = Math.max(1, ...grupos.map(g => Math.max(g.v.auto, g.v.gemeo)));
-  const barras = [];
-  const larg = Math.min(0.32, 24 / ((W - 70) / grupos.length));
-  grupos.forEach((g, i) => {
-    ['auto', 'gemeo'].forEach((pol, j) => {
-      const x0 = i + 0.5 - larg - 0.01 + j * (larg + 0.02);
-      barras.push({ x0, x1: x0 + larg, y: Math.max(0, g.v[pol]), cor: T.pol[pol].cor === '#000000' && pol === 'auto' ? '#9a9a9a' : T.pol[pol].cor,
-        rotulo: fmt(g.v[pol], 1) + '%', dica: `<div>${esc(g.rot)}</div><div class="lin">${esc(NOME[pol])}: <b>${fmt(g.v[pol], 2)}%</b></div>` });
-    });
-  });
-  const leg = [{ nome: NOME.auto, cor: T === TEMA_IMP ? '#9a9a9a' : T.pol.auto.cor, larg: 8 }, { nome: NOME.gemeo, cor: T.pol.gemeo.cor, larg: 8 }];
-  return { W, H, legenda: leg, arquivo: 'figura_economia_por_lote', rotulo: 'Economia de material por lote',
-    paineis: [{ x: 0, y: 26, w: W, h: H - 26, xMin: 0, xMax: grupos.length, yMin: 0, yMax: Math.ceil(ymax * 1.2 / 2) * 2,
-      xMarcas: grupos.map((_, i) => i + 0.5), fmtX: v => grupos[Math.round(v - 0.5)] ? grupos[Math.round(v - 0.5)].rot : '',
-      fmtY: v => v + '%', tituloY: 'economia de material (%)', barras }] };
-}
-function specF7(T) {
-  const W = 1120, H = 320, lotes = sim.pcp.lotes;
-  const serie = (campo) => lotes.map((l, li) => ({
-    nome: `${fmt(l.espessura_mm, 0)} mm`, cor: T.seq[li % 5], traco: T.seqTraco[li % 5], larg: 2,
-    pontos: sim.curvas[li].map(p => [p.setpoint_pct - 100, p[campo]]),
-    rotuloFim: campo === 'economia_pct' ? null : null
+// Barras agrupadas por espessura; uma barra por forma de corte.
+function corBarra(T, pol) { return T === TEMA_IMP ? { mec: '#c4c4c4', auto: '#7a7a7a', gemeo: '#1a1a1a' }[pol] : T.pol[pol].cor; }
+function painelBarras(T, y, h, W, titulo, tituloY, grupos, pols, campo, yMax, dec, rotular) {
+  const larg = Math.min(0.8 / pols.length, 24 / ((W - 70) / grupos.length)), gap = 2 / ((W - 70) / grupos.length);
+  const total = pols.length * larg + (pols.length - 1) * gap, barras = [];
+  grupos.forEach((g, i) => pols.forEach((pol, j) => {
+    const v = g.v[pol][campo], x0 = i + 0.5 - total / 2 + j * (larg + gap);
+    barras.push({ x0, x1: x0 + larg, y: Math.max(0, v), cor: corBarra(T, pol), rotulo: !rotular || rotular(v) ? fmt(v, dec) + '%' : '',
+      dica: `<div>${esc(g.rot)}</div><div class="lin">${esc(NOME[pol])}: <b>${fmt(v, 2)}%</b></div>` });
   }));
-  const tolMax = Math.max(...lotes.map(l => l.tolerancia_pct));
-  const legenda = lotes.map((l, li) => ({ nome: `${fmt(l.espessura_mm, 0)} mm`, cor: T.seq[li % 5], traco: T.seqTraco[li % 5], larg: 2 }));
-  const econMax = Math.ceil(Math.max(...sim.curvas.flat().map(p => p.economia_pct)) / 2) * 2;
-  return { W, H, legenda, arquivo: 'figura_setpoint', rotulo: 'Setpoint, conformidade e economia',
+  return { x: 0, y, w: W, h, xMin: 0, xMax: grupos.length, yMin: 0, yMax, titulo, tituloY,
+    xMarcas: grupos.map((_, i) => i + 0.5), fmtX: v => grupos[Math.round(v - 0.5)] ? grupos[Math.round(v - 0.5)].rot : '',
+    fmtY: v => v + '%', barras };
+}
+function specF6(T) {
+  const W = 1120, ph = 270;
+  const grupos = sim.ind.lotes.map(o => ({ rot: `${fmt(o.espessura_mm, 0)} mm`, v: o.pol }));
+  grupos.push({ rot: 'Total', v: sim.ind.total.pol });
+  const econMax = Math.max(1, ...grupos.map(g => Math.max(g.v.auto.economia_pct, g.v.gemeo.economia_pct)));
+  const legenda = POL.map(pol => ({ nome: NOME[pol], cor: corBarra(T, pol), larg: 8 }));
+  return { W, H: 26 + 2 * ph, legenda, arquivo: 'figura_conformidade_economia', rotulo: 'Conformidade e economia por espessura',
     paineis: [
-      { x: 0, y: 26, w: W / 2, h: H - 26, xMin: -tolMax, xMax: 0, yMin: 0, yMax: 100, titulo: 'Conformidade',
-        tituloX: 'setpoint em relação à nominal (%)', tituloY: 'chapas conformes (%)', fmtX: v => (v > 0 ? '+' : '') + fmt(v, 0) + '%', fmtY: v => v + '%',
-        fmtDicaX: v => `setpoint ${fmt(100 + v, 2)}% da nominal`, fmtDicaY: v => fmt(v, 1) + '%', series: serie('conf_pct') },
-      { x: W / 2, y: 26, w: W / 2, h: H - 26, xMin: -tolMax, xMax: 0, yMin: 0, yMax: econMax, titulo: 'Economia de material',
-        tituloX: 'setpoint em relação à nominal (%)', tituloY: 'economia frente ao mecânico (%)', fmtX: v => (v > 0 ? '+' : '') + fmt(v, 0) + '%', fmtY: v => v + '%',
-        fmtDicaX: v => `setpoint ${fmt(100 + v, 2)}% da nominal`, fmtDicaY: v => fmt(v, 2) + '%', series: serie('economia_pct') }
+      painelBarras(T, 26, ph, W, 'Conformidade (rótulo nas barras abaixo de 100%)', 'chapas conformes (%)', grupos, POL, 'conf_tol_pct', 110, 1, v => v < 99.95),
+      painelBarras(T, 26 + ph, ph, W, 'Economia de material frente ao corte mecânico', 'economia (%)', grupos, ['auto', 'gemeo'], 'economia_pct', Math.ceil(econMax * 1.25 / 2) * 2, 1)
     ] };
 }
 function iconeSev(sev) {
@@ -926,7 +907,7 @@ function desenharPainel() {
 /* ---------- início ---------- */
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
   if (!sim) return;
-  for (const id of ['f5', 'f6', 'f7']) if (FIGURAS[id]) render(id, FIGURAS[id]);
+  for (const id of ['f5', 'f6']) if (FIGURAS[id]) render(id, FIGURAS[id]);
   desenharPainel();
 });
 desenharPCP();
