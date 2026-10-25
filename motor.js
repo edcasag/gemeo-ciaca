@@ -28,11 +28,13 @@
       fases_graus: [0, 60, 240]
     },
     lotes: [
-      { espessura_mm: 8,  chapas: 5000, lamina_mm: 0.60, tempo_volta_s: 1.5, tolerancia_pct: 10, diametro_mm: 1660 },
-      { espessura_mm: 12, chapas: 8000, lamina_mm: 0.60, tempo_volta_s: 1.5, tolerancia_pct: 10, diametro_mm: 1660 },
-      { espessura_mm: 20, chapas: 8000, lamina_mm: 0.60, tempo_volta_s: 1.5, tolerancia_pct: 10, diametro_mm: 1890 },
-      { espessura_mm: 25, chapas: 3000, lamina_mm: 0.60, tempo_volta_s: 1.5, tolerancia_pct: 10, diametro_mm: 2050 },
-      { espessura_mm: 30, chapas: 2000, lamina_mm: 0.60, tempo_volta_s: 1.5, tolerancia_pct: 10, diametro_mm: 2050 }
+      // tolerancia_pct: limite absoluto da norma; faixa_negocio_pct: faixa em que a
+      // fábrica quer trabalhar, onde o gêmeo posiciona o setpoint.
+      { espessura_mm: 8,  chapas: 5000, lamina_mm: 0.60, tempo_volta_s: 1.5, tolerancia_pct: 10, faixa_negocio_pct: 5, diametro_mm: 1660 },
+      { espessura_mm: 12, chapas: 8000, lamina_mm: 0.60, tempo_volta_s: 1.5, tolerancia_pct: 10, faixa_negocio_pct: 5, diametro_mm: 1660 },
+      { espessura_mm: 20, chapas: 8000, lamina_mm: 0.60, tempo_volta_s: 1.5, tolerancia_pct: 10, faixa_negocio_pct: 5, diametro_mm: 1890 },
+      { espessura_mm: 25, chapas: 3000, lamina_mm: 0.60, tempo_volta_s: 1.5, tolerancia_pct: 10, faixa_negocio_pct: 5, diametro_mm: 2050 },
+      { espessura_mm: 30, chapas: 2000, lamina_mm: 0.60, tempo_volta_s: 1.5, tolerancia_pct: 10, faixa_negocio_pct: 5, diametro_mm: 2050 }
     ],
     mecanico: { batimento_cada: 20, laminas_extra: [1, 2] },
     gemeo: { meta_conformidade_pct: 100, margem_limite_inferior_pct: 0, passo_setpoint_mm: 0.05, chapas_por_teste: 400, janela_chapas: 50 },
@@ -88,6 +90,9 @@
 
   function copiar(o) { return JSON.parse(JSON.stringify(o)); }
 
+  // Faixa do negócio do lote (%); PCP sem o campo usa a tolerância da norma.
+  function faixaNegocio(l) { return l.faixa_negocio_pct === undefined ? l.tolerancia_pct : Number(l.faixa_negocio_pct); }
+
   function validarPCP(pcp) {
     const erros = [];
     if (!pcp || !Array.isArray(pcp.lotes) || pcp.lotes.length === 0) erros.push('O PCP precisa de pelo menos um lote.');
@@ -97,7 +102,8 @@
       if (!(l.chapas >= 1 && l.chapas <= 100000)) erros.push(`Lote ${n}: chapas entre 1 e 100.000.`);
       if (!(l.lamina_mm >= 0.2 && l.lamina_mm <= 2)) erros.push(`Lote ${n}: lâmina média entre 0,2 e 2 mm.`);
       if (!(l.tempo_volta_s > 0)) erros.push(`Lote ${n}: tempo por volta deve ser maior que zero.`);
-      if (!(l.tolerancia_pct > 0 && l.tolerancia_pct < 50)) erros.push(`Lote ${n}: tolerância entre 0 e 50%.`);
+      if (!(l.tolerancia_pct > 0 && l.tolerancia_pct < 50)) erros.push(`Lote ${n}: tolerância da norma entre 0 e 50%.`);
+      if (!(faixaNegocio(l) > 0 && faixaNegocio(l) <= l.tolerancia_pct)) erros.push(`Lote ${n}: faixa do negócio deve ser maior que zero e no máximo igual à tolerância da norma.`);
       if (DIAMETROS_MM.indexOf(Number(l.diametro_mm)) < 0) erros.push(`Lote ${n}: diâmetro deve ser ${DIAMETROS_MM.join(', ')} mm.`);
     });
     (pcp.falhas || []).forEach((f, i) => {
@@ -187,11 +193,12 @@
              economia_pct: 100 * (1 - somaAuto / somaMec) };
   }
 
-  // Menor setpoint que mantém a meta de conformidade no gêmeo. A conformidade
-  // cresce com o setpoint a partir do limite inferior; busca binária na grade.
+  // Menor setpoint que mantém a meta de conformidade no gêmeo, dentro da faixa
+  // `tol` (a faixa do negócio, fração da nominal). A conformidade cresce com o
+  // setpoint a partir do limite inferior; busca binária na grade.
   function otimizarSetpoint(pcp, T, tol, mu, amp) {
     const g = pcp.gemeo, passo = g.passo_setpoint_mm;
-    // Piso do setpoint: limite inferior da tolerância mais a margem de segurança.
+    // Piso do setpoint: limite inferior da faixa mais a margem de segurança.
     const margem = Math.min(tol, Math.max(0, (g.margem_limite_inferior_pct || 0) / 100));
     const ini = Math.ceil(T * (1 - tol + margem) / passo - 1e-9), fim = Math.floor(T / passo + 1e-9);
     const ok = (j) => gemeoTestar(T, tol, mu, amp, j * passo, g.chapas_por_teste, pcp.semente, pcp).conf_pct >= g.meta_conformidade_pct;
@@ -255,14 +262,14 @@
 
     for (let li = 0; li < pcp.lotes.length; li++) {
       const l = pcp.lotes[li], T = l.espessura_mm, mu = l.lamina_mm, tv = l.tempo_volta_s;
-      const tol = l.tolerancia_pct / 100, R = T, aps = amostrasVolta(tv);
+      const tol = l.tolerancia_pct / 100, neg = faixaNegocio(l) / 100, R = T, aps = amostrasVolta(tv);
       const fl = porLote[li];
       const fDiam = fl.find(f => f.tipo === 'diametro');
       // Configuração na troca de lote.
       let autoOk = pol !== 'mec' && !(pol === 'auto' && fDiam);
       let S = T;
       if (pol === 'gemeo') {
-        S = otimizarSetpoint(pcp, T, tol, mu, ampNom);
+        S = otimizarSetpoint(pcp, T, neg, mu, ampNom);
         r.setpoints.push({ t, g, lote: li + 1, chapa: 0, S, motivo: 'Troca de lote: setpoint, diâmetro e camadas programados pelo PCP' });
         if (fDiam) autoOk = false; // diâmetro manual errado até o gêmeo reprogramar
       }
@@ -279,7 +286,7 @@
         amp = Math.max(ampNom, amp);
         if (Math.abs(m - muUsado) < 0.01 && Math.abs(amp - ampUsada) < 0.2 * ampUsada) return;
         muUsado = m; ampUsada = amp;
-        const novo = otimizarSetpoint(pcp, T, tol, m, amp);
+        const novo = otimizarSetpoint(pcp, T, neg, m, amp);
         if (Math.abs(novo - S) > 1e-9) {
           S = novo;
           r.setpoints.push({ t: tA, g, lote: li + 1, chapa: i, S, motivo });
@@ -422,9 +429,9 @@
     const lotes = pcp.lotes.map((l, li) => {
       const o = { lote: li + 1, espessura_mm: l.espessura_mm, chapas: l.chapas, pol: {} };
       for (const pol of POLITICAS) {
-        const r = res[pol], T = l.espessura_mm, tol = l.tolerancia_pct / 100;
+        const r = res[pol], T = l.espessura_mm, tol = l.tolerancia_pct / 100, neg = faixaNegocio(l) / 100;
         const vals = [];
-        let c10 = 0, c5 = 0, cTol = 0, vt = 0, mat = 0, perdidas = 0, mec = 0, t0 = null, t1 = 0;
+        let c10 = 0, c5 = 0, cTol = 0, cNeg = 0, vt = 0, mat = 0, perdidas = 0, mec = 0, t0 = null, t1 = 0;
         for (let g = 0; g < r.n; g++) {
           if (r.lote[g] !== li) continue;
           const f = r.final[g], d = Math.abs(f - T);
@@ -437,10 +444,11 @@
           if (d <= 0.10 * T + 1e-9) c10++;
           if (d <= 0.05 * T + 1e-9) c5++;
           if (d <= tol * T + 1e-9) cTol++;
+          if (d <= neg * T + 1e-9) cNeg++;
         }
         const n = l.chapas, horas = (t1 - t0) / 3600;
         o.pol[pol] = {
-          conf10_pct: 100 * c10 / n, conf5_pct: 100 * c5 / n, conf_tol_pct: 100 * cTol / n,
+          conf10_pct: 100 * c10 / n, conf5_pct: 100 * c5 / n, conf_tol_pct: 100 * cTol / n, conf_neg_pct: 100 * cNeg / n,
           media_mm: vals.reduce((s, x) => s + x, 0) / Math.max(1, vals.length),
           dp_mm: desvioPadrao(vals), voltas_media: vt / n,
           chapas_hora: horas > 0 ? n / horas : 0, material_mm: mat,
@@ -458,10 +466,10 @@
     const total = { pol: {} };
     for (const pol of POLITICAS) {
       const r = res[pol];
-      let mat = 0, conf = 0, vt = 0, n = 0;
-      lotes.forEach(o => { const p = o.pol[pol]; mat += p.material_mm; conf += p.conf_tol_pct * o.chapas / 100; vt += p.voltas_media * o.chapas; n += o.chapas; });
+      let mat = 0, conf = 0, confNeg = 0, vt = 0, n = 0;
+      lotes.forEach(o => { const p = o.pol[pol]; mat += p.material_mm; conf += p.conf_tol_pct * o.chapas / 100; confNeg += p.conf_neg_pct * o.chapas / 100; vt += p.voltas_media * o.chapas; n += o.chapas; });
       total.pol[pol] = {
-        material_mm: mat, conf_tol_pct: 100 * conf / n, voltas_media: vt / n,
+        material_mm: mat, conf_tol_pct: 100 * conf / n, conf_neg_pct: 100 * confNeg / n, voltas_media: vt / n,
         chapas_hora: n / (r.tTotal / 3600),
         completude_trilha_pct: 100 * r.eventos.registrados / r.eventos.esperados,
         eventos_atrasados: r.eventos.atrasados
@@ -521,6 +529,6 @@
   return {
     PCP_PADRAO, DIAMETROS_MM, POLITICAS, NOME_POLITICA, FALHAS,
     simular, simularPolitica, indicadores, curvaSetpoint, otimizarSetpoint, gemeoTestar,
-    validarPCP, copiar, extraBatimento, cortaAgora
+    validarPCP, copiar, extraBatimento, cortaAgora, faixaNegocio
   };
 });

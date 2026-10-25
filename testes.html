@@ -29,7 +29,7 @@
   const e1 = base();
   e1.lamina.amplitudes_mm = [0, 0, 0];
   e1.falhas = [];
-  e1.lotes = [{ espessura_mm: 20, chapas: 100, lamina_mm: 0.60, tempo_volta_s: 1.5, tolerancia_pct: 10, diametro_mm: 1890 }];
+  e1.lotes = [{ espessura_mm: 20, chapas: 100, lamina_mm: 0.60, tempo_volta_s: 1.5, tolerancia_pct: 10, faixa_negocio_pct: 5, diametro_mm: 1890 }];
   const r1 = Motor.simular(e1);
   const mecNormal = [], mecBat = [];
   for (let g = 0; g < 100; g++) (Motor.extraBatimento(e1, g) ? mecBat : mecNormal).push(r1.res.mec.voltas[g]);
@@ -37,15 +37,19 @@
   const nBat = Math.floor(100 / e1.mecanico.batimento_cada);
   verifica(`E1 mecânico: batimento em 1 de cada ${e1.mecanico.batimento_cada} chapas acrescenta 1 ou 2 voltas`, mecBat.every(v => v === 35 || v === 36) && mecBat.length === nBat, 'voltas ' + mecBat.join(','));
   verifica('E1 automático (setpoint nominal): antecipa e corta em 33 voltas', Array.from(r1.res.auto.voltas).every(v => v === 33));
-  verifica('E1 gêmeo, sem margem: setpoint no limite inferior com lâmina constante (30 voltas, 18,0 mm)',
-    Array.from(r1.res.gemeo.voltas).every(v => v === 30) && Math.abs(r1.res.gemeo.setpoint[0] - 18) < 1e-6, 'setpoint ' + r1.res.gemeo.setpoint[0]);
-  verifica('E1 gêmeo: 100% conforme', r1.ind.lotes[0].pol.gemeo.conf_tol_pct === 100);
-  const e1c = Motor.copiar(e1); e1c.gemeo.margem_limite_inferior_pct = 5;
+  verifica('E1 gêmeo, faixa do negócio de 5%: setpoint no limite inferior da faixa (32 voltas, 19,0 mm)',
+    Array.from(r1.res.gemeo.voltas).every(v => v === 32) && Math.abs(r1.res.gemeo.setpoint[0] - 19) < 1e-6, 'setpoint ' + r1.res.gemeo.setpoint[0]);
+  verifica('E1 gêmeo: 100% dentro da norma e da faixa do negócio', r1.ind.lotes[0].pol.gemeo.conf_tol_pct === 100 && r1.ind.lotes[0].pol.gemeo.conf_neg_pct === 100);
+  const e1b = Motor.copiar(e1); e1b.lotes[0].faixa_negocio_pct = 10;
+  const r1b = Motor.simular(e1b);
+  verifica('E1 gêmeo, faixa do negócio igual à norma: setpoint no limite da norma (30 voltas, 18,0 mm)',
+    Array.from(r1b.res.gemeo.voltas).every(v => v === 30) && Math.abs(r1b.res.gemeo.setpoint[0] - 18) < 1e-6, 'setpoint ' + r1b.res.gemeo.setpoint[0]);
+  const e1c = Motor.copiar(e1); e1c.gemeo.margem_limite_inferior_pct = 2.5;
   const r1c = Motor.simular(e1c);
-  verifica('E1 gêmeo, margem de 5%: setpoint não fica abaixo de 19,0 mm', r1c.res.gemeo.setpoint[0] >= 19 - 1e-6, 'setpoint ' + r1c.res.gemeo.setpoint[0]);
-  const e1d = Motor.copiar(e1); e1d.gemeo.margem_limite_inferior_pct = 10;
+  verifica('E1 gêmeo, margem de 2,5%: setpoint não fica abaixo de 19,5 mm', r1c.res.gemeo.setpoint[0] >= 19.5 - 1e-6, 'setpoint ' + r1c.res.gemeo.setpoint[0]);
+  const e1d = Motor.copiar(e1); e1d.gemeo.margem_limite_inferior_pct = 5;
   const r1d = Motor.simular(e1d);
-  verifica('E1 gêmeo, margem igual à tolerância: setpoint no nominal (33 voltas)', Array.from(r1d.res.gemeo.voltas).every(v => v === 33), 'setpoint ' + r1d.res.gemeo.setpoint[0]);
+  verifica('E1 gêmeo, margem igual à faixa do negócio: setpoint no nominal (33 voltas)', Array.from(r1d.res.gemeo.voltas).every(v => v === 33), 'setpoint ' + r1d.res.gemeo.setpoint[0]);
 
   // Sem falhas: invariantes.
   const sf = base(); sf.falhas = [];

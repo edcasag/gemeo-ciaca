@@ -6,11 +6,11 @@
     "fases_graus": [0, 60, 240]
   },
   "lotes": [
-    { "espessura_mm": 8,  "chapas": 5000, "lamina_mm": 0.60, "tempo_volta_s": 1.5, "tolerancia_pct": 10, "diametro_mm": 1660 },
-    { "espessura_mm": 12, "chapas": 8000, "lamina_mm": 0.60, "tempo_volta_s": 1.5, "tolerancia_pct": 10, "diametro_mm": 1660 },
-    { "espessura_mm": 20, "chapas": 8000, "lamina_mm": 0.60, "tempo_volta_s": 1.5, "tolerancia_pct": 10, "diametro_mm": 1890 },
-    { "espessura_mm": 25, "chapas": 3000, "lamina_mm": 0.60, "tempo_volta_s": 1.5, "tolerancia_pct": 10, "diametro_mm": 2050 },
-    { "espessura_mm": 30, "chapas": 2000, "lamina_mm": 0.60, "tempo_volta_s": 1.5, "tolerancia_pct": 10, "diametro_mm": 2050 }
+    { "espessura_mm": 8,  "chapas": 5000, "lamina_mm": 0.60, "tempo_volta_s": 1.5, "tolerancia_pct": 10, "faixa_negocio_pct": 5, "diametro_mm": 1660 },
+    { "espessura_mm": 12, "chapas": 8000, "lamina_mm": 0.60, "tempo_volta_s": 1.5, "tolerancia_pct": 10, "faixa_negocio_pct": 5, "diametro_mm": 1660 },
+    { "espessura_mm": 20, "chapas": 8000, "lamina_mm": 0.60, "tempo_volta_s": 1.5, "tolerancia_pct": 10, "faixa_negocio_pct": 5, "diametro_mm": 1890 },
+    { "espessura_mm": 25, "chapas": 3000, "lamina_mm": 0.60, "tempo_volta_s": 1.5, "tolerancia_pct": 10, "faixa_negocio_pct": 5, "diametro_mm": 2050 },
+    { "espessura_mm": 30, "chapas": 2000, "lamina_mm": 0.60, "tempo_volta_s": 1.5, "tolerancia_pct": 10, "faixa_negocio_pct": 5, "diametro_mm": 2050 }
   ],
   "mecanico": { "batimento_cada": 20, "laminas_extra": [1, 2] },
   "gemeo": { "meta_conformidade_pct": 100, "margem_limite_inferior_pct": 0, "passo_setpoint_mm": 0.05, "chapas_por_teste": 400, "janela_chapas": 50 },

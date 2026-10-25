@@ -128,10 +128,10 @@
 <section id="aba-pcp">
   <div class="cartao">
     <h2>Lotes do plano de produção</h2>
-    <p class="nota">Cada lote tem espessura nominal, quantidade de chapas, lâmina média (regime da massa), tempo por volta do cilindro, tolerância e diâmetro da prensa. Na troca de lote, o gêmeo programa o setpoint, o diâmetro e as camadas esperadas.</p>
+    <p class="nota">Cada lote tem espessura nominal, quantidade de chapas, lâmina média (regime da massa), tempo por volta do cilindro, tolerância da norma (limite absoluto; fora dela a chapa é reciclada), faixa do negócio (onde a fábrica quer trabalhar; o gêmeo põe o setpoint na parte baixa dessa faixa) e diâmetro da prensa. Na troca de lote, o gêmeo programa o setpoint, o diâmetro e as camadas esperadas.</p>
     <div class="rolagem">
       <table id="tab-lotes">
-        <thead><tr><th>Lote</th><th>Espessura (mm)</th><th>Chapas</th><th>Lâmina média (mm)</th><th>Tempo por volta (s)</th><th>Tolerância (%)</th><th>Diâmetro da prensa (mm)</th><th>Camadas esperadas</th><th></th></tr></thead>
+        <thead><tr><th>Lote</th><th>Espessura (mm)</th><th>Chapas</th><th>Lâmina média (mm)</th><th>Tempo por volta (s)</th><th>Tolerância da norma (%)</th><th>Faixa do negócio (%)</th><th>Diâmetro da prensa (mm)</th><th>Camadas esperadas</th><th></th></tr></thead>
         <tbody></tbody>
       </table>
     </div>
@@ -189,12 +189,12 @@
 
   <div class="cartao">
     <h2>Resultados por lote</h2>
-    <p class="nota">Conformidade pela tolerância do lote e pelas faixas de 10% e 5%. Economia de material e chapas economizadas em relação ao corte mecânico.</p>
+    <p class="nota">Chapas dentro da tolerância da norma (limite absoluto) e dentro da faixa do negócio de cada lote. Economia de material e chapas economizadas em relação ao corte mecânico.</p>
     <div class="rolagem"><table id="tab-res"></table></div>
   </div>
 
   <div class="cartao">
-    <div class="fig-cab"><div><h2>Distribuição da espessura final</h2><p class="nota">Porcentagem das chapas por faixa de espessura final, em % da nominal. A faixa sombreada é a tolerância do lote.</p></div><button class="b peq" data-png="f5">Baixar PNG (cinza)</button></div>
+    <div class="fig-cab"><div><h2>Distribuição da espessura final</h2><p class="nota">Porcentagem das chapas por faixa de espessura final, em % da nominal. Faixa sombreada: tolerância da norma (limite absoluto); linhas pontilhadas: faixa do negócio; tracejado: nominal.</p></div><button class="b peq" data-png="f5">Baixar PNG (cinza)</button></div>
     <div class="fig" id="f5"></div>
   </div>
 
@@ -235,7 +235,7 @@
     <div class="fig" id="fp1"></div>
   </div>
   <div class="cartao">
-    <div class="fig-cab"><div><h2>Dispersão da espessura final</h2><p class="nota">Chapas por faixa de 0,05 mm. Faixa sombreada: tolerância do lote; tracejado: nominal; linha contínua: setpoint atual do gêmeo.</p></div><button class="b peq" data-png="fp2">Baixar PNG (cinza)</button></div>
+    <div class="fig-cab"><div><h2>Dispersão da espessura final</h2><p class="nota">Chapas por faixa de 0,05 mm. Faixa sombreada: tolerância da norma; pontilhado: faixa do negócio; tracejado: nominal; linha contínua: setpoint atual do gêmeo.</p></div><button class="b peq" data-png="fp2">Baixar PNG (cinza)</button></div>
     <div class="fig" id="fp2"></div>
   </div>
   <div class="cartao">
@@ -296,7 +296,8 @@ function desenharLotes() {
     <td><input type="number" step="100" min="1" data-l="${i}" data-k="chapas" value="${l.chapas}" aria-label="Chapas do lote ${i + 1}"></td>
     <td><input type="number" step="0.01" min="0.2" data-l="${i}" data-k="lamina_mm" value="${l.lamina_mm}" aria-label="Lâmina média do lote ${i + 1}"></td>
     <td><input type="number" step="0.1" min="0.1" data-l="${i}" data-k="tempo_volta_s" value="${l.tempo_volta_s}" aria-label="Tempo por volta do lote ${i + 1}"></td>
-    <td><input type="number" step="1" min="1" max="49" data-l="${i}" data-k="tolerancia_pct" value="${l.tolerancia_pct}" aria-label="Tolerância do lote ${i + 1}"></td>
+    <td><input type="number" step="1" min="1" max="49" data-l="${i}" data-k="tolerancia_pct" value="${l.tolerancia_pct}" aria-label="Tolerância da norma do lote ${i + 1}"></td>
+    <td><input type="number" step="0.5" min="0.5" max="49" data-l="${i}" data-k="faixa_negocio_pct" value="${Motor.faixaNegocio(l)}" aria-label="Faixa do negócio do lote ${i + 1}"></td>
     <td><select data-l="${i}" data-k="diametro_mm" aria-label="Diâmetro do lote ${i + 1}">${Motor.DIAMETROS_MM.map(d => `<option value="${d}" ${d === Number(l.diametro_mm) ? 'selected' : ''}>${d.toLocaleString('pt-BR')}</option>`).join('')}</select></td>
     <td class="num">${camadasEsperadas(l)}</td>
     <td><button class="x" data-del-lote="${i}" aria-label="Remover lote ${i + 1}" title="Remover">×</button></td>
@@ -617,17 +618,17 @@ function desenharResultados() {
   const tot = sim.ind.total.pol;
   $('#blocos-res').innerHTML =
     bloco('Chapas economizadas com o gêmeo', fmt0(tot.gemeo.chapas_economizadas), `${fmt(tot.gemeo.economia_pct, 1)}% do material, automático com gêmeo frente ao mecanizado`, true) +
-    bloco('Conformidade', fmt(tot.gemeo.conf_tol_pct, 2) + '%', `mecânico ${fmt(tot.mec.conf_tol_pct, 2)}%`) +
+    bloco('Dentro da norma', fmt(tot.gemeo.conf_tol_pct, 2) + '%', `mecânico ${fmt(tot.mec.conf_tol_pct, 2)}%; na faixa do negócio: ${fmt(tot.gemeo.conf_neg_pct, 2)}% (mecânico ${fmt(tot.mec.conf_neg_pct, 2)}%)`) +
     bloco('Voltas por chapa', fmt(tot.gemeo.voltas_media, 1), `mecânico ${fmt(tot.mec.voltas_media, 1)}`) +
     bloco('Chapas por hora', fmt(tot.gemeo.chapas_hora, 1), `mecânico ${fmt(tot.mec.chapas_hora, 1)}`) +
     bloco('Completude da trilha de eventos', fmt(tot.gemeo.completude_trilha_pct, 3) + '%', `${tot.gemeo.eventos_atrasados.toLocaleString('pt-BR')} eventos retidos na borda e entregues depois`);
 
-  let h = `<thead><tr><th>Lote</th><th>Forma de corte</th><th class="num">Conformidade</th><th class="num">Conf. 10%</th><th class="num">Conf. 5%</th><th class="num">Média (mm)</th><th class="num">Desvio (mm)</th><th class="num">Voltas</th><th class="num">Chapas/h</th><th class="num">Economia</th><th class="num">Chapas econ.</th></tr></thead><tbody>`;
+  let h = `<thead><tr><th>Lote</th><th>Forma de corte</th><th class="num">Dentro da norma</th><th class="num">Na faixa do negócio</th><th class="num">Média (mm)</th><th class="num">Desvio (mm)</th><th class="num">Voltas</th><th class="num">Chapas/h</th><th class="num">Economia</th><th class="num">Chapas econ.</th></tr></thead><tbody>`;
   sim.ind.lotes.forEach(o => {
     POL.forEach((pol, j) => {
       const p = o.pol[pol];
       h += `<tr class="${j === 0 ? 'grupo' : ''}"><td>${j === 0 ? `${o.lote}: ${fmt(o.espessura_mm, 1)} mm, ${o.chapas.toLocaleString('pt-BR')} chapas` : ''}</td><td>${esc(NOME[pol])}</td>
-        <td class="num">${fmt(p.conf_tol_pct, 2)}%</td><td class="num">${fmt(p.conf10_pct, 1)}%</td><td class="num">${fmt(p.conf5_pct, 1)}%</td>
+        <td class="num">${fmt(p.conf_tol_pct, 2)}%</td><td class="num">${fmt(p.conf_neg_pct, 2)}%</td>
         <td class="num">${fmt(p.media_mm, 2)}</td><td class="num">${fmt(p.dp_mm, 3)}</td><td class="num">${fmt(p.voltas_media, 1)}</td>
         <td class="num">${fmt(p.chapas_hora, 1)}</td><td class="num">${pol === 'mec' ? '-' : fmt(p.economia_pct, 2) + '%'}</td><td class="num">${pol === 'mec' ? '-' : fmt0(p.chapas_economizadas)}</td></tr>`;
     });
@@ -673,7 +674,8 @@ function specF5(T) {
     paineis.push({
       x: c * pw, y: 26 + rr * ph, w: pw, h: ph, xMin: 80, xMax: 126, yMin: 0, yMax: ymax,
       titulo: `${fmt(l.espessura_mm, 0)} mm`, tituloX: 'espessura final (% da nominal)', tituloY: c === 0 ? '% das chapas' : '',
-      faixasX: [{ x0: 100 - l.tolerancia_pct, x1: 100 + l.tolerancia_pct + 1 }], linhasX: [{ x: 100, traco: '3 3' }],
+      faixasX: [{ x0: 100 - l.tolerancia_pct, x1: 100 + l.tolerancia_pct + 1 }],
+      linhasX: [{ x: 100, traco: '3 3' }, { x: 100 - Motor.faixaNegocio(l), traco: '1 3', cor: T.tinta2 }, { x: 100 + Motor.faixaNegocio(l) + 1, traco: '1 3', cor: T.tinta2 }],
       xMarcas: [80, 90, 100, 110, 120], fmtX: v => v + '%', fmtY: v => v + '%', fmtDicaY: v => fmt(v, 1) + '%',
       fmtDicaX: v => `${v}% a ${v + 1}% da nominal`,
       series: POL.map(pol => ({ nome: NOME[pol], pontos: dados[li][pol], degrau: true, cor: T.pol[pol].cor, traco: T.pol[pol].traco, larg: T.pol[pol].larg }))
@@ -762,7 +764,8 @@ th{background:#efefef}.n{text-align:right;font-variant-numeric:tabular-nums}svg{
       u === 'lote' ? '-' : mil(f.chapa), u === 'lote' ? 'lote inteiro' : `${mil(f.duracao)} ${u === 's' ? 's' : u}`]; }), [1, 2, 3]);
 
   h += `<h2>2. Resumo</h2>` + tabelaRel(['Indicador', 'Corte mecanizado', 'Automático com gêmeo'], [
-    ['Conformidade (tolerância do lote)', fmt(tot.mec.conf_tol_pct, 2) + '%', fmt(tot.gemeo.conf_tol_pct, 2) + '%'],
+    ['Chapas dentro da norma (tolerância absoluta)', fmt(tot.mec.conf_tol_pct, 2) + '%', fmt(tot.gemeo.conf_tol_pct, 2) + '%'],
+    ['Chapas na faixa do negócio', fmt(tot.mec.conf_neg_pct, 2) + '%', fmt(tot.gemeo.conf_neg_pct, 2) + '%'],
     ['Voltas por chapa', fmt(tot.mec.voltas_media, 1), fmt(tot.gemeo.voltas_media, 1)],
     ['Chapas por hora', fmt(tot.mec.chapas_hora, 1), fmt(tot.gemeo.chapas_hora, 1)],
     ['Economia de material', '-', fmt(tot.gemeo.economia_pct, 2) + '%'],
@@ -774,11 +777,11 @@ th{background:#efefef}.n{text-align:right;font-variant-numeric:tabular-nums}svg{
   const linhasLote = [];
   sim.ind.lotes.forEach(o => POL.forEach((pol, j) => {
     const q = o.pol[pol];
-    linhasLote.push([j === 0 ? `${o.lote}: ${fmt(o.espessura_mm, 1)} mm` : '', esc(NOME[pol]), fmt(q.conf_tol_pct, 2) + '%', fmt(q.conf10_pct, 1) + '%', fmt(q.conf5_pct, 1) + '%',
+    linhasLote.push([j === 0 ? `${o.lote}: ${fmt(o.espessura_mm, 1)} mm` : '', esc(NOME[pol]), fmt(q.conf_tol_pct, 2) + '%', fmt(q.conf_neg_pct, 2) + '%',
       fmt(q.media_mm, 2), fmt(q.dp_mm, 3), fmt(q.voltas_media, 1), fmt(q.chapas_hora, 1), pol === 'mec' ? '-' : fmt(q.economia_pct, 2) + '%', pol === 'mec' ? '-' : fmt0(q.chapas_economizadas)]);
   }));
-  h += `<h2>3. Resultados por lote</h2>` + tabelaRel(['Lote', 'Forma de corte', 'Conformidade', 'Conf. 10%', 'Conf. 5%', 'Média (mm)', 'Desvio (mm)', 'Voltas', 'Chapas/h', 'Economia', 'Chapas econ.'],
-    linhasLote, [2, 3, 4, 5, 6, 7, 8, 9, 10]);
+  h += `<h2>3. Resultados por lote</h2>` + tabelaRel(['Lote', 'Forma de corte', 'Dentro da norma', 'Na faixa do negócio', 'Média (mm)', 'Desvio (mm)', 'Voltas', 'Chapas/h', 'Economia', 'Chapas econ.'],
+    linhasLote, [2, 3, 4, 5, 6, 7, 8, 9]);
 
   h += `<h2>4. Figuras</h2><div class="bloco"><h3>Distribuição da espessura final por lote (% da nominal)</h3>${svg(specF5(T))}</div>
 <div class="bloco"><h3>Economia de material por espessura: automático com gêmeo frente ao mecanizado</h3>${svg(specF6(T))}</div>`;
@@ -928,7 +931,9 @@ function specDispersao(T, fixo) {
     legenda: [...legPol(T, ['mec', 'gemeo']), { nome: 'Setpoint do gêmeo', cor: T.setp, larg: 1.5 }, { nome: `Nominal ${fmt(Tn, 1)} mm`, cor: T.mudo, traco: '3 3', larg: 1 }],
     paineis: [{ x: 0, y: 26, w: W, h: H - 26, xMin, xMax, yMin: 0, yMax: Math.ceil(yMax * 1.1),
       tituloX: `espessura final (mm), ${(n.gemeo || 0).toLocaleString('pt-BR')} chapas`, tituloY: 'chapas',
-      faixasX: [{ x0: Tn * (1 - tol), x1: Tn * (1 + tol) }], linhasX: [{ x: Tn, traco: '3 3' }, { x: S, cor: T.setp, larg: 1.5 }],
+      faixasX: [{ x0: Tn * (1 - tol), x1: Tn * (1 + tol) }],
+      linhasX: [{ x: Tn, traco: '3 3' }, { x: S, cor: T.setp, larg: 1.5 },
+        { x: Tn * (1 - Motor.faixaNegocio(l) / 100), traco: '1 3', cor: T.tinta2 }, { x: Tn * (1 + Motor.faixaNegocio(l) / 100), traco: '1 3', cor: T.tinta2 }],
       fmtX: v => fmt(v, 1), fmtY: v => fmtEixo(v), fmtDicaX: v => `${fmt(v, 2)} a ${fmt(v + BIN, 2)} mm`, fmtDicaY: v => fmt0(v) + ' chapas',
       series: [
         { nome: NOME.mec, pontos: sm, degrau: true, cor: T.pol.mec.cor, traco: T.pol.mec.traco, larg: T.pol.mec.larg },
@@ -966,7 +971,7 @@ function desenharPainel() {
   $('#blocos-painel').innerHTML =
     bloco('Chapas economizadas no lote', fmt0(econ), `${fmt(econPct, 1)}% do material, frente ao corte mecânico`, true) +
     bloco('Chapas produzidas', c.toLocaleString('pt-BR'), `de ${l.chapas.toLocaleString('pt-BR')} planejadas`) +
-    bloco('Conformidade', g.conf === null ? '-' : fmt(g.conf, 2) + '%', `mecânico ${m.conf === null ? '-' : fmt(m.conf, 2) + '%'}`) +
+    bloco('Dentro da norma', g.conf === null ? '-' : fmt(g.conf, 2) + '%', `mecânico ${m.conf === null ? '-' : fmt(m.conf, 2) + '%'}`) +
     bloco('Voltas por chapa', g.voltas === null ? '-' : fmt(g.voltas, 1), `mecânico ${m.voltas === null ? '-' : fmt(m.voltas, 1)}`) +
     bloco('Chapas por hora', g.ch === null ? '-' : fmt(g.ch, 1), `mecânico ${m.ch === null ? '-' : fmt(m.ch, 1)}`) +
     bloco('Setpoint atual', S === undefined ? '-' : fmt(S, 2) + ' mm', `nominal ${fmt(T, 1)} mm; camadas esperadas ${S ? Math.round(S / l.lamina_mm) : '-'}`) +
