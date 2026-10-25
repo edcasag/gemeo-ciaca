@@ -188,6 +188,11 @@
   <div class="blocos" id="blocos-res"></div>
 
   <div class="cartao">
+    <div class="fig-cab"><div><h2>Figura do artigo</h2><p class="nota">Uma figura em quatro partes, lote de 20 mm: (a) chapas em formação, (b) dispersão da espessura final, (c) economia por espessura (todos os lotes) e (d) lâmina e alarmes do gêmeo.</p></div><button class="b peq" data-png="fart">Baixar PNG (cinza)</button></div>
+    <div class="fig" id="fart"></div>
+  </div>
+
+  <div class="cartao">
     <h2>Resultados por lote</h2>
     <p class="nota">Chapas dentro da tolerância da norma (limite absoluto) e dentro da faixa do negócio de cada lote. Economia de material e chapas economizadas em relação ao corte mecânico.</p>
     <div class="rolagem"><table id="tab-res"></table></div>
@@ -417,7 +422,7 @@ function cssv(n) { return getComputedStyle(document.documentElement).getProperty
 function temaTela() {
   return {
     fundo: cssv('--surface-1'), tinta: cssv('--text-primary'), tinta2: cssv('--text-secondary'), mudo: cssv('--muted'),
-    grade: cssv('--grid'), eixo: cssv('--axis'), faixa: cssv('--band'), setp: cssv('--text-secondary'),
+    grade: cssv('--grid'), eixo: cssv('--axis'), faixa: cssv('--band'), setp: cssv('--text-secondary'), setpTraco: '',
     pol: { mec: { cor: cssv('--s-mec'), traco: '', larg: 1.5 }, auto: { cor: cssv('--s-auto'), traco: '', larg: 2 }, gemeo: { cor: cssv('--s-gemeo'), traco: '', larg: 2 } },
     seq: [1, 2, 3, 4, 5].map(i => cssv('--seq-' + i)), seqTraco: ['', '', '', '', ''],
     status: { alerta: cssv('--warning'), serio: cssv('--serious'), critico: cssv('--critical') },
@@ -425,7 +430,7 @@ function temaTela() {
   };
 }
 const TEMA_IMP = {
-  fundo: '#ffffff', tinta: '#000000', tinta2: '#222222', mudo: '#555555', grade: '#e2e2e2', eixo: '#999999', faixa: 'rgba(0,0,0,0.08)', setp: '#000000',
+  fundo: '#ffffff', tinta: '#000000', tinta2: '#222222', mudo: '#555555', grade: '#e2e2e2', eixo: '#999999', faixa: 'rgba(0,0,0,0.08)', setp: '#000000', setpTraco: '7 2 2 2',
   pol: { mec: { cor: '#9a9a9a', traco: '', larg: 1.5 }, auto: { cor: '#000000', traco: '6 4', larg: 1.75 }, gemeo: { cor: '#000000', traco: '', larg: 2.25 } },
   seq: ['#b5b5b5', '#8a8a8a', '#5e5e5e', '#333333', '#000000'], seqTraco: ['', '7 3', '2 3', '9 3 2 3', ''],
   status: { alerta: '#000000', serio: '#000000', critico: '#000000' },
@@ -594,6 +599,8 @@ function render(id, specFn) {
   cont.innerHTML = r.svg;
   ligarDica(cont, { W: spec.W, H: spec.H, meta: r.meta });
 }
+// SVG de uma figura no tema de impressão (escala de cinza, fundo branco).
+function svgImpressao(id) { return FIGURAS[id] ? figuraSVG(FIGURAS[id](TEMA_IMP), TEMA_IMP, true).svg : ''; }
 function exportarPNG(id) {
   const specFn = FIGURAS[id]; if (!specFn) return;
   const spec = specFn(TEMA_IMP);
@@ -644,7 +651,7 @@ function desenharResultados() {
   });
   $('#tab-falhas-res').innerHTML = hf + '</tbody>';
 
-  render('f5', specF5); render('f6', specF6);
+  render('f5', specF5); render('f6', specF6); render('fart', specArtigo);
 }
 function legPol(T, pols) { return pols.map(pol => ({ nome: NOME[pol], cor: T.pol[pol].cor, traco: T.pol[pol].traco, larg: T.pol[pol].larg })); }
 function specF5(T) {
@@ -729,6 +736,37 @@ $('#csv').addEventListener('click', () => {
   baixar(new Blob([linhas.join('\n')], { type: 'text/csv' }), 'chapas_simuladas.csv');
 });
 
+/* ---------- figura do artigo (quatro partes) ---------- */
+// Reposiciona os painéis de uma figura dentro de um retângulo da figura composta.
+function encaixar(spec, topo, X, Y, w, h, titulos) {
+  const sx = w / spec.W, sy = h / (spec.H - topo);
+  return spec.paineis.map((p, i) => Object.assign({}, p, {
+    x: X + p.x * sx, y: Y + (p.y - topo) * sy, w: p.w * sx, h: p.h * sy,
+    titulo: titulos[i] !== undefined ? titulos[i] : p.titulo
+  }));
+}
+function loteArtigo() {
+  const i = sim.pcp.lotes.findIndex(l => l.espessura_mm === 20);
+  return i >= 0 ? i : 0;
+}
+function specArtigo(T) {
+  const li = loteArtigo(), l = sim.pcp.lotes[li], e = fmt(l.espessura_mm, 0);
+  const W = 1120, Ha = 280, Hb = 300, Hd = 210, y0 = 30;
+  const fa = specFormacao(T, { li }), fb = specDispersao(T, { li }), fc = specF6(T), fd = specLamina(T, { li });
+  const S = sim.res.gemeo.setpoint[inicioLote(li) + l.chapas - 1];
+  const neg = Motor.faixaNegocio(l);
+  const paineis = [
+    ...encaixar(fa, 26, 0, y0, W, Ha, [`(a) Chapas em formação, ${e} mm: corte mecânico`, `(a) Chapas em formação, ${e} mm: automático com gêmeo (setpoint ${fmt(S, 2)} mm)`]),
+    ...encaixar(fb, 26, 0, y0 + Ha, W / 2, Hb, [`(b) Dispersão da espessura final, ${e} mm`]),
+    ...encaixar(fc, 8, W / 2, y0 + Ha, W / 2, Hb, ['(c) Economia de material por espessura']),
+    ...encaixar(fd, 4, 0, y0 + Ha + Hb, W, Hd, [`(d) Lâmina média por chapa e alarmes do gêmeo, ${e} mm`])
+  ];
+  return { W, H: y0 + Ha + Hb + Hd, arquivo: 'figura_artigo', rotulo: 'Figura do artigo: formação, dispersão, economia e alarmes',
+    legenda: [...legPol(T, ['mec', 'gemeo']), { nome: 'Setpoint do gêmeo', cor: T.setp, traco: T.setpTraco, larg: 1.5 }, { nome: 'Nominal', cor: T.mudo, traco: '3 3', larg: 1 },
+      { nome: `Faixa do negócio (±${fmt(neg, 0)}%)`, cor: T.tinta2, traco: '1 3', larg: 1 }, { nome: 'Alarme', cor: T.status.critico, larg: 1.5 }],
+    paineis };
+}
+
 /* ---------- relatório da simulação ---------- */
 function tabelaRel(cab, linhas, numericas = []) {
   const cel = (v, j, tag) => `<${tag}${numericas.includes(j) ? ' class="n"' : ''}>${v}</${tag}>`;
@@ -783,7 +821,8 @@ th{background:#efefef}.n{text-align:right;font-variant-numeric:tabular-nums}svg{
   h += `<h2>3. Resultados por lote</h2>` + tabelaRel(['Lote', 'Forma de corte', 'Dentro da norma', 'Na faixa do negócio', 'Média (mm)', 'Desvio (mm)', 'Voltas', 'Chapas/h', 'Economia', 'Chapas econ.'],
     linhasLote, [2, 3, 4, 5, 6, 7, 8, 9]);
 
-  h += `<h2>4. Figuras</h2><div class="bloco"><h3>Distribuição da espessura final por lote (% da nominal)</h3>${svg(specF5(T))}</div>
+  h += `<h2>4. Figuras</h2><div class="bloco"><h3>Figura do artigo: formação, dispersão, economia e alarmes</h3>${svg(specArtigo(T))}</div>
+<div class="bloco"><h3>Distribuição da espessura final por lote (% da nominal)</h3>${svg(specF5(T))}</div>
 <div class="bloco"><h3>Economia de material por espessura: automático com gêmeo frente ao mecanizado</h3>${svg(specF6(T))}</div>`;
   p.lotes.forEach((l, li) => {
     h += `<div class="bloco"><h3>Lote ${li + 1}: ${fmt(l.espessura_mm, 0)} mm. Últimas chapas em formação, dispersão da espessura final e lâmina com alarmes</h3>
@@ -898,10 +937,10 @@ function specFormacao(T, fixo) {
     series: [{ nome: NOME[pol], pontos: pts, degrau: true, cor: T.pol[pol].cor, traco: T.pol[pol].traco, larg: T.pol[pol].larg }]
   });
   return { W, H, arquivo: `figura_formacao_lote${li + 1}`, rotulo: 'Chapas em formação: espessura acumulada volta a volta',
-    legenda: [...legPol(T, ['mec', 'gemeo']), { nome: 'Setpoint do gêmeo', cor: T.setp, larg: 1.5 }, { nome: `Nominal ${fmt(Tn, 1)} mm`, cor: T.mudo, traco: '3 3', larg: 1 }],
+    legenda: [...legPol(T, ['mec', 'gemeo']), { nome: 'Setpoint do gêmeo', cor: T.setp, traco: T.setpTraco, larg: 1.5 }, { nome: `Nominal ${fmt(Tn, 1)} mm`, cor: T.mudo, traco: '3 3', larg: 1 }],
     paineis: [
       Object.assign(base(`Corte mecânico (rolo no nominal)`, pm, 'mec', [{ y: Tn, traco: '3 3' }]), { x: 0 }),
-      Object.assign(base(`Corte automático com gêmeo (setpoint ${fmt(S, 2)} mm)`, pg, 'gemeo', [{ y: Tn, traco: '3 3' }, { y: S, cor: T.setp, larg: 1.5 }]), { x: W / 2 })
+      Object.assign(base(`Corte automático com gêmeo (setpoint ${fmt(S, 2)} mm)`, pg, 'gemeo', [{ y: Tn, traco: '3 3' }, { y: S, cor: T.setp, traco: T.setpTraco, larg: 1.5 }]), { x: W / 2 })
     ] };
 }
 function specDispersao(T, fixo) {
@@ -929,11 +968,11 @@ function specDispersao(T, fixo) {
   const S = c > 0 ? sim.res.gemeo.setpoint[o + c - 1] : Tn;
   const W = 1120, H = 300;
   return { W, H, arquivo: `figura_dispersao_lote${li + 1}`, rotulo: 'Dispersão da espessura final',
-    legenda: [...legPol(T, ['mec', 'gemeo']), { nome: 'Setpoint do gêmeo', cor: T.setp, larg: 1.5 }, { nome: `Nominal ${fmt(Tn, 1)} mm`, cor: T.mudo, traco: '3 3', larg: 1 }],
+    legenda: [...legPol(T, ['mec', 'gemeo']), { nome: 'Setpoint do gêmeo', cor: T.setp, traco: T.setpTraco, larg: 1.5 }, { nome: `Nominal ${fmt(Tn, 1)} mm`, cor: T.mudo, traco: '3 3', larg: 1 }],
     paineis: [{ x: 0, y: 26, w: W, h: H - 26, xMin, xMax, yMin: 0, yMax: Math.ceil(yMax * 1.1),
       tituloX: `espessura final (mm), ${(n.gemeo || 0).toLocaleString('pt-BR')} chapas`, tituloY: 'chapas',
       faixasX: [{ x0: Tn * (1 - tol), x1: Tn * (1 + tol) }],
-      linhasX: [{ x: Tn, traco: '3 3' }, { x: S, cor: T.setp, larg: 1.5 },
+      linhasX: [{ x: Tn, traco: '3 3' }, { x: S, cor: T.setp, traco: T.setpTraco, larg: 1.5 },
         { x: Tn * (1 - Motor.faixaNegocio(l) / 100), traco: '1 3', cor: T.tinta2 }, { x: Tn * (1 + Motor.faixaNegocio(l) / 100), traco: '1 3', cor: T.tinta2 }],
       fmtX: v => fmt(v, 1), fmtY: v => fmtEixo(v), fmtDicaX: v => `${fmt(v, 2)} a ${fmt(v + BIN, 2)} mm`, fmtDicaY: v => fmt0(v) + ' chapas',
       series: [
@@ -994,7 +1033,7 @@ function desenharPainel() {
 /* ---------- início ---------- */
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
   if (!sim) return;
-  for (const id of ['f5', 'f6']) if (FIGURAS[id]) render(id, FIGURAS[id]);
+  for (const id of ['f5', 'f6', 'fart']) if (FIGURAS[id]) render(id, FIGURAS[id]);
   desenharPainel();
 });
 desenharPCP();
