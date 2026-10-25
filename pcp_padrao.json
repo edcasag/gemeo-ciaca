@@ -1,0 +1,28 @@
+{
+  "semente": 1,
+  "lamina": {
+    "amplitudes_mm": [0.040, 0.008, 0.002],
+    "periodos_s": [960, 480, 240],
+    "fases_graus": [0, 60, 240]
+  },
+  "lotes": [
+    { "espessura_mm": 8,  "chapas": 5000, "lamina_mm": 0.60, "tempo_volta_s": 1.5, "tolerancia_pct": 10, "diametro_mm": 1660 },
+    { "espessura_mm": 12, "chapas": 8000, "lamina_mm": 0.60, "tempo_volta_s": 1.5, "tolerancia_pct": 10, "diametro_mm": 1660 },
+    { "espessura_mm": 20, "chapas": 8000, "lamina_mm": 0.60, "tempo_volta_s": 1.5, "tolerancia_pct": 10, "diametro_mm": 1890 },
+    { "espessura_mm": 25, "chapas": 3000, "lamina_mm": 0.60, "tempo_volta_s": 1.5, "tolerancia_pct": 10, "diametro_mm": 2050 },
+    { "espessura_mm": 30, "chapas": 2000, "lamina_mm": 0.60, "tempo_volta_s": 1.5, "tolerancia_pct": 10, "diametro_mm": 2050 }
+  ],
+  "mecanico": { "batimento_cada": 10, "laminas_extra": [1, 2] },
+  "gemeo": { "meta_conformidade_pct": 100, "passo_setpoint_mm": 0.05, "chapas_por_teste": 400, "janela_chapas": 50 },
+  "falhas": [
+    { "tipo": "falta_massa",    "lote": 1, "chapa": 1000, "duracao": 20,  "ativa": true },
+    { "tipo": "rede",           "lote": 1, "chapa": 3000, "duracao": 5,   "ativa": true },
+    { "tipo": "irregularidade", "lote": 2, "chapa": 2000, "duracao": 300, "ativa": true },
+    { "tipo": "medidor",        "lote": 2, "chapa": 6000, "duracao": 10,  "ativa": true },
+    { "tipo": "densidade",      "lote": 3, "chapa": 1500, "duracao": 50,  "ativa": true },
+    { "tipo": "trancos",        "lote": 3, "chapa": 5000, "duracao": 100, "ativa": true },
+    { "tipo": "energia",        "lote": 4, "chapa": 1000, "duracao": 600, "ativa": true },
+    { "tipo": "nuvem",          "lote": 4, "chapa": 2000, "duracao": 300, "ativa": true },
+    { "tipo": "diametro",       "lote": 5, "chapa": 0,    "duracao": 0,   "ativa": true }
+  ]
+}

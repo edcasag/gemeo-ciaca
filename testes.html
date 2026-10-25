@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Testes do simulador</title>
+<style>
+  body { font: 14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; margin: 24px; background: #fcfcfb; color: #0b0b0b; }
+  pre { white-space: pre-wrap; }
+  .ok { color: #006300; } .falha { color: #d03b3b; font-weight: 600; }
+</style>
+</head>
+<body>
+<h1>Testes do simulador</h1>
+<p>Verificação funcional do motor (E1, invariantes, determinismo e detecção de falhas). Abra esta página no navegador; o resultado aparece abaixo.</p>
+<pre id="saida">executando...</pre>
+<script src="motor.js"></script>
+<script>
+(async function () {
+  const linhas = [];
+  let falhas = 0;
+  function verifica(nome, cond, detalhe) {
+    if (!cond) falhas++;
+    linhas.push((cond ? 'OK     ' : 'FALHOU ') + nome + (detalhe ? '  (' + detalhe + ')' : ''));
+  }
+  const base = () => Motor.copiar(Motor.PCP_PADRAO);
+
+  // E1: lâmina constante, sem falhas, um lote de 20 mm.
+  const e1 = base();
+  e1.lamina.amplitudes_mm = [0, 0, 0];
+  e1.falhas = [];
+  e1.lotes = [{ espessura_mm: 20, chapas: 100, lamina_mm: 0.60, tempo_volta_s: 1.5, tolerancia_pct: 10, diametro_mm: 1890 }];
+  const r1 = Motor.simular(e1);
+  const mecNormal = [], mecBat = [];
+  for (let g = 0; g < 100; g++) (Motor.extraBatimento(e1, g) ? mecBat : mecNormal).push(r1.res.mec.voltas[g]);
+  verifica('E1 mecânico: chapas normais cortam na volta que atinge a medida (34 voltas)', mecNormal.every(v => v === 34), 'voltas ' + [...new Set(mecNormal)]);
+  verifica('E1 mecânico: batimento acrescenta 1 ou 2 voltas', mecBat.every(v => v === 35 || v === 36) && mecBat.length === 10, 'voltas ' + mecBat.join(','));
+  verifica('E1 automático (setpoint nominal): antecipa e corta em 33 voltas', Array.from(r1.res.auto.voltas).every(v => v === 33));
+  verifica('E1 gêmeo: setpoint no limite inferior com lâmina constante (30 voltas, 18,0 mm)',
+    Array.from(r1.res.gemeo.voltas).every(v => v === 30) && Math.abs(r1.res.gemeo.setpoint[0] - 18) < 1e-6, 'setpoint ' + r1.res.gemeo.setpoint[0]);
+  verifica('E1 gêmeo: 100% conforme', r1.ind.lotes[0].pol.gemeo.conf_tol_pct === 100);
+
+  // Sem falhas: invariantes.
+  const sf = base(); sf.falhas = [];
+  const r2 = Motor.simular(sf);
+  for (const pol of Motor.POLITICAS) {
+    const r = r2.res[pol];
+    let somaV = 0, minF = Infinity;
+    for (let g = 0; g < r.n; g++) { somaV += r.voltas[g]; minF = Math.min(minF, r.final[g]); }
+    verifica(`Invariante (${pol}): um REF por volta`, r.refs === somaV, r.refs + ' REF, ' + somaV + ' voltas');
+    verifica(`Invariante (${pol}): trilha completa sem falhas`, r.eventos.registrados === r.eventos.esperados);
+    verifica(`Invariante (${pol}): espessura final positiva`, minF > 0);
+  }
+  verifica('Sem falhas: gêmeo 100% conforme em todos os lotes', r2.ind.lotes.every(o => o.pol.gemeo.conf_tol_pct === 100),
+    r2.ind.lotes.map(o => o.pol.gemeo.conf_tol_pct.toFixed(2)).join(' / '));
+  verifica('Sem falhas: nenhum alarme do gêmeo', r2.res.gemeo.alarmes.length === 0, r2.res.gemeo.alarmes.map(a => a.tipo).join(','));
+  let bat = 0; for (let g = 0; g < r2.res.mec.n; g++) if (r2.res.mec.flags[g] & 2) bat++;
+  verifica('Batimento do mecânico em 1 de cada 10 chapas', Math.abs(bat / r2.res.mec.n - 0.1) < 0.001, (100 * bat / r2.res.mec.n).toFixed(2) + '%');
+
+  // Determinismo.
+  const pa = Motor.simular(base()), pb = Motor.simular(base());
+  let iguais = true;
+  for (const pol of Motor.POLITICAS) for (let g = 0; g < pa.res[pol].n; g++) if (pa.res[pol].final[g] !== pb.res[pol].final[g]) { iguais = false; break; }
+  verifica('Determinismo: mesma semente, mesma saída', iguais);
+
+  // Falhas do PCP padrão: todas detectadas pelo gêmeo.
+  pa.falhas.forEach(f => verifica(`Falha detectada: ${f.nome} (lote ${f.lote})`, f.detectada,
+    f.latencia_s !== null ? 'latência ' + f.latencia_s.toFixed(1) + ' s' : 'sem latência'));
+  // Diâmetro errado no lote 5.
+  const li5 = 4;
+  let autoMec = 0, autoN = 0, gemMec = 0;
+  for (let g = 0; g < pa.res.auto.n; g++) if (pa.res.auto.lote[g] === li5) { autoN++; if (pa.res.auto.flags[g] & 1) autoMec++; }
+  for (let g = 0; g < pa.res.gemeo.n; g++) if (pa.res.gemeo.lote[g] === li5 && (pa.res.gemeo.flags[g] & 1)) gemMec++;
+  verifica('Diâmetro errado: sem gêmeo, o lote inteiro fica no corte mecânico', autoMec === autoN, autoMec + '/' + autoN);
+  verifica('Diâmetro errado: com gêmeo, só a primeira chapa fica no corte mecânico', gemMec === 1, gemMec + ' chapa(s)');
+
+  // pcp_padrao.json igual ao padrão embutido no motor.
+  try {
+    const j = await (await fetch('pcp_padrao.json')).json();
+    verifica('pcp_padrao.json igual ao PCP padrão do motor', JSON.stringify(j) === JSON.stringify(Motor.PCP_PADRAO));
+  } catch (e) {
+    linhas.push('AVISO  pcp_padrao.json não pôde ser lido nesta forma de abertura (' + e.message + ')');
+  }
+
+  // Resumo dos resultados com o PCP padrão.
+  const res = pa;
+  const fmt = (x, d = 2) => (x === null || x === undefined) ? '-' : Number(x).toFixed(d);
+  linhas.push('', `Simulação do PCP padrão: ${res.ms.toFixed(0)} ms`);
+  for (const pol of Motor.POLITICAS) {
+    const p = res.ind.total.pol[pol];
+    linhas.push(`${Motor.NOME_POLITICA[pol].padEnd(20)} conf ${fmt(p.conf_tol_pct)}%  voltas ${fmt(p.voltas_media)}  chapas/h ${fmt(p.chapas_hora, 1)}  economia ${fmt(p.economia_pct)}% (${fmt(p.chapas_economizadas, 0)} chapas)  trilha ${fmt(p.completude_trilha_pct, 3)}%  atrasados ${p.eventos_atrasados}`);
+  }
+  linhas.push('', 'Por lote (mec | auto | gêmeo): conformidade, média, dp, voltas, economia');
+  res.ind.lotes.forEach(o => {
+    const c = pol => { const p = o.pol[pol]; return `${fmt(p.conf_tol_pct, 1)}% ${fmt(p.media_mm)} ${fmt(p.dp_mm, 3)} ${fmt(p.voltas_media, 1)} ${fmt(p.economia_pct, 2)}%`; };
+    linhas.push(`${o.espessura_mm} mm: ${c('mec')} | ${c('auto')} | ${c('gemeo')}`);
+  });
+  linhas.push('', 'Falhas: tipo, lote, latência (s), chapas, fora da tolerância (mec/auto/gêmeo)');
+  res.falhas.forEach(f => linhas.push(`${f.nome}: lote ${f.lote}, ${fmt(f.latencia_s, 1)} s, ${f.chapas}, ${f.fora_tol.mec}/${f.fora_tol.auto}/${f.fora_tol.gemeo}`));
+  linhas.push('', `Alarmes do gêmeo: ${res.res.gemeo.alarmes.length}`);
+  res.res.gemeo.alarmes.forEach(a => linhas.push(`  ${a.tipo} lote ${a.lote} chapa ${a.chapa} lat ${fmt(a.latencia_s, 1)}: ${a.msg}`));
+  linhas.push('', `Setpoints enviados pelo gêmeo: ${res.res.gemeo.setpoints.length}`);
+  res.res.gemeo.setpoints.slice(0, 40).forEach(s => linhas.push(`  lote ${s.lote} chapa ${s.chapa}: ${fmt(s.S, 3)} mm (${s.motivo})`));
+  linhas.push('', 'Curva do setpoint, lote 20 mm (setpoint %, conformidade %, economia %):');
+  res.curvas[2].filter((_, j) => j % 4 === 0).forEach(p => linhas.push(`  ${fmt(p.setpoint_pct)}  ${fmt(p.conf_pct, 1)}  ${fmt(p.economia_pct)}`));
+
+  linhas.unshift(falhas === 0 ? 'RESULTADO: todos os testes passaram' : `RESULTADO: ${falhas} teste(s) falharam`, '');
+  const el = document.getElementById('saida');
+  el.textContent = linhas.join('\n');
+  el.className = falhas === 0 ? 'ok' : 'falha';
+})().catch(e => { document.getElementById('saida').textContent = 'ERRO: ' + e.stack; });
+</script>
+</body>
+</html>

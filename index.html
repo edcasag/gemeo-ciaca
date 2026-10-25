@@ -1,0 +1,878 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gêmeo digital de chapas</title>
+<meta name="description" content="Simulador virtual de um gêmeo digital para a formação de chapas cimentícias: plano de produção editável, comparação entre corte mecânico, corte automático e corte automático com gêmeo digital, alarmes de falha e painel proposto.">
+<style>
+  :root {
+    color-scheme: light;
+    --page: #f9f9f7; --surface-1: #fcfcfb;
+    --text-primary: #0b0b0b; --text-secondary: #52514e; --muted: #898781;
+    --grid: #e1e0d9; --axis: #c3c2b7; --border: rgba(11,11,11,0.10);
+    --s-mec: #898781; --s-auto: #eb6834; --s-gemeo: #2a78d6;
+    --seq-1: #86b6ef; --seq-2: #5598e7; --seq-3: #2a78d6; --seq-4: #1c5cab; --seq-5: #104281;
+    --band: rgba(42,120,214,0.08); --accent: #2a78d6; --accent-ink: #ffffff;
+    --good: #0ca30c; --good-text: #006300; --warning: #fab219; --serious: #ec835a; --critical: #d03b3b;
+    --input: #ffffff;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) {
+      color-scheme: dark;
+      --page: #0d0d0d; --surface-1: #1a1a19;
+      --text-primary: #f0efec; --text-secondary: #c3c2b7; --muted: #898781;
+      --grid: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,0.10);
+      --s-mec: #9a988f; --s-auto: #d95926; --s-gemeo: #3987e5;
+      --seq-1: #9ec5f4; --seq-2: #6da7ec; --seq-3: #3987e5; --seq-4: #256abf; --seq-5: #184f95;
+      --band: rgba(57,135,229,0.12); --accent: #3987e5; --accent-ink: #ffffff;
+      --good-text: #0ca30c; --input: #232322;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --page: #0d0d0d; --surface-1: #1a1a19;
+    --text-primary: #f0efec; --text-secondary: #c3c2b7; --muted: #898781;
+    --grid: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,0.10);
+    --s-mec: #9a988f; --s-auto: #d95926; --s-gemeo: #3987e5;
+    --seq-1: #9ec5f4; --seq-2: #6da7ec; --seq-3: #3987e5; --seq-4: #256abf; --seq-5: #184f95;
+    --band: rgba(57,135,229,0.12); --accent: #3987e5; --accent-ink: #ffffff;
+    --good-text: #0ca30c; --input: #232322;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background: var(--page); color: var(--text-primary);
+    font: 14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  .topo { max-width: 1160px; margin: 0 auto; padding: 24px 16px 8px; }
+  h1 { font-size: 22px; line-height: 1.25; margin: 0 0 4px; font-weight: 650; }
+  .sub { color: var(--text-secondary); margin: 0; max-width: 820px; }
+  nav.abas { max-width: 1160px; margin: 12px auto 0; padding: 0 16px; display: flex; gap: 4px; border-bottom: 1px solid var(--border); overflow-x: auto; }
+  nav.abas button {
+    appearance: none; border: 0; background: none; color: var(--text-secondary); font: inherit; font-weight: 550;
+    padding: 10px 14px; border-bottom: 2px solid transparent; cursor: pointer; white-space: nowrap;
+  }
+  nav.abas button[aria-selected="true"] { color: var(--text-primary); border-bottom-color: var(--accent); }
+  main { max-width: 1160px; margin: 0 auto; padding: 16px 16px 48px; }
+  section[hidden] { display: none; }
+  .cartao { background: var(--surface-1); border: 1px solid var(--border); border-radius: 10px; padding: 16px; margin-bottom: 16px; }
+  .cartao h2 { font-size: 16px; margin: 0 0 4px; font-weight: 650; }
+  .cartao p.nota { color: var(--text-secondary); margin: 0 0 12px; font-size: 13px; }
+  .grade2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+  .rolagem { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; font-size: 13px; }
+  th, td { padding: 6px 8px; text-align: left; border-bottom: 1px solid var(--grid); white-space: nowrap; }
+  th { color: var(--text-secondary); font-weight: 600; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  tr.grupo td { border-top: 1px solid var(--axis); }
+  input[type="number"], input[type="text"], select {
+    font: inherit; color: var(--text-primary); background: var(--input); border: 1px solid var(--axis);
+    border-radius: 6px; padding: 4px 6px; width: 100%; min-width: 64px;
+  }
+  input[type="checkbox"] { width: 16px; height: 16px; }
+  label.campo { display: grid; gap: 2px; font-size: 13px; color: var(--text-secondary); }
+  .campos { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+  .acoes { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  button.b {
+    font: inherit; font-weight: 550; border-radius: 8px; padding: 8px 14px; cursor: pointer;
+    border: 1px solid var(--axis); background: var(--surface-1); color: var(--text-primary);
+  }
+  button.b.pri { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+  button.b.peq { padding: 4px 10px; font-size: 13px; }
+  button.x { border: 0; background: none; color: var(--muted); font-size: 18px; cursor: pointer; padding: 0 6px; }
+  .estado { color: var(--text-secondary); font-size: 13px; }
+  .erros { color: var(--critical); font-size: 13px; }
+  .blocos { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 16px; }
+  .bloco { background: var(--surface-1); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; }
+  .bloco .rot { color: var(--text-secondary); font-size: 13px; }
+  .bloco .val { font-size: 26px; font-weight: 650; line-height: 1.2; margin-top: 2px; }
+  .bloco .val.heroi { font-size: 48px; }
+  .bloco .cmp { color: var(--text-secondary); font-size: 12.5px; margin-top: 2px; }
+  .fig { position: relative; }
+  .fig svg { width: 100%; height: auto; display: block; }
+  .fig-cab { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+  .dica {
+    position: fixed; pointer-events: none; z-index: 10; background: var(--surface-1); color: var(--text-primary);
+    border: 1px solid var(--border); border-radius: 8px; padding: 6px 9px; font-size: 12.5px; box-shadow: 0 2px 10px rgba(0,0,0,0.12);
+    display: none; max-width: 280px;
+  }
+  .dica .lin { display: flex; align-items: center; gap: 6px; font-variant-numeric: tabular-nums; }
+  .dica .sw { width: 12px; height: 3px; border-radius: 2px; display: inline-block; }
+  .alarmes { list-style: none; margin: 0; padding: 0; max-height: 360px; overflow-y: auto; }
+  .alarmes li { display: grid; grid-template-columns: 22px 1fr; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--grid); }
+  .alarmes .tit { font-weight: 600; }
+  .alarmes .det { color: var(--text-secondary); font-size: 12.5px; }
+  .sev { font-size: 11.5px; font-weight: 650; text-transform: uppercase; letter-spacing: .02em; color: var(--text-secondary); margin-right: 6px; }
+  .controle { display: flex; flex-wrap: wrap; gap: 10px; align-items: end; }
+  .controle label.campo { min-width: 140px; }
+  input[type="range"] { width: 100%; }
+  .vazio { color: var(--muted); padding: 8px 0; }
+  .ativo-alarme { outline: 2px solid var(--critical); outline-offset: -2px; }
+  .rodape { color: var(--muted); font-size: 12.5px; max-width: 1160px; margin: 0 auto; padding: 0 16px 32px; }
+</style>
+</head>
+<body>
+<div class="topo">
+  <h1>Gêmeo digital na formação de chapas cimentícias</h1>
+  <p class="sub">Simulador virtual. A máquina, o corte mecânico, o corte automático do controlador e o gêmeo digital são simulados, sem conexão com equipamento real. Edite o plano de produção (PCP), simule e compare os resultados.</p>
+</div>
+<nav class="abas" role="tablist">
+  <button role="tab" data-aba="pcp" aria-selected="true">1. PCP</button>
+  <button role="tab" data-aba="res" aria-selected="false">2. Resultados</button>
+  <button role="tab" data-aba="painel" aria-selected="false">3. Painel do gêmeo</button>
+</nav>
+<main>
+
+<!-- ABA 1: PCP -->
+<section id="aba-pcp">
+  <div class="cartao">
+    <h2>Lotes do plano de produção</h2>
+    <p class="nota">Cada lote tem espessura nominal, quantidade de chapas, lâmina média (regime da massa), tempo por volta do cilindro, tolerância e diâmetro da prensa. Na troca de lote, o gêmeo programa o setpoint, o diâmetro e as camadas esperadas.</p>
+    <div class="rolagem">
+      <table id="tab-lotes">
+        <thead><tr><th>Lote</th><th>Espessura (mm)</th><th>Chapas</th><th>Lâmina média (mm)</th><th>Tempo por volta (s)</th><th>Tolerância (%)</th><th>Diâmetro da prensa (mm)</th><th>Camadas esperadas</th><th></th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <div class="acoes" style="margin-top:10px"><button class="b peq" id="add-lote">+ Lote</button></div>
+  </div>
+
+  <div class="cartao">
+    <h2>Cenários de falha</h2>
+    <p class="nota">Falhas injetadas na simulação, aplicadas igualmente às três formas de corte. O gêmeo detecta cada uma e emite alarme para o operador.</p>
+    <div class="rolagem">
+      <table id="tab-falhas">
+        <thead><tr><th>Ativa</th><th>Falha</th><th>Lote</th><th>Chapa inicial</th><th>Duração</th><th></th><th></th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <div class="acoes" style="margin-top:10px"><button class="b peq" id="add-falha">+ Falha</button></div>
+  </div>
+
+  <div class="grade2">
+    <div class="cartao">
+      <h2>Variação lenta da lâmina</h2>
+      <p class="nota">e(t) = μ + Σ Aᵢ sen(2πt/Pᵢ + φᵢ), contínuo entre chapas. As amplitudes podem ser alteradas para testar a robustez.</p>
+      <div class="campos" id="campos-lamina"></div>
+    </div>
+    <div class="cartao">
+      <h2>Corte mecânico e gêmeo</h2>
+      <p class="nota">Batimento do corte mecânico (sem sincronismo com o cilindro) e parâmetros da busca do setpoint pelo gêmeo.</p>
+      <div class="campos" id="campos-param"></div>
+    </div>
+  </div>
+
+  <div class="cartao">
+    <div class="acoes">
+      <button class="b pri" id="simular">Simular</button>
+      <button class="b" id="restaurar">Restaurar padrão</button>
+      <button class="b" id="exportar">Exportar PCP</button>
+      <button class="b" id="importar">Importar PCP</button>
+      <input type="file" id="arquivo" accept="application/json,.json" hidden>
+      <span class="estado" id="estado"></span>
+    </div>
+    <div class="erros" id="erros"></div>
+  </div>
+</section>
+
+<!-- ABA 2: RESULTADOS -->
+<section id="aba-res" hidden>
+  <div class="blocos" id="blocos-res"></div>
+
+  <div class="cartao">
+    <h2>Resultados por lote</h2>
+    <p class="nota">Conformidade pela tolerância do lote e pelas faixas de 10% e 5%. Economia de material e chapas economizadas em relação ao corte mecânico.</p>
+    <div class="rolagem"><table id="tab-res"></table></div>
+  </div>
+
+  <div class="cartao">
+    <div class="fig-cab"><div><h2>Distribuição da espessura final</h2><p class="nota">Porcentagem das chapas por faixa de espessura final, em % da nominal. A faixa sombreada é a tolerância do lote.</p></div><button class="b peq" data-png="f5">Baixar PNG (cinza)</button></div>
+    <div class="fig" id="f5"></div>
+  </div>
+
+  <div class="cartao" style="max-width:760px">
+    <div class="fig-cab"><div><h2>Economia de material por lote</h2><p class="nota">Em relação ao corte mecânico.</p></div><button class="b peq" data-png="f6">Baixar PNG (cinza)</button></div>
+    <div class="fig" id="f6"></div>
+  </div>
+
+  <div class="cartao">
+    <h2>Falhas detectadas pelo gêmeo</h2>
+    <p class="nota">Tempo até a detecção e chapas fora da tolerância durante a falha (mecânico / automático / com gêmeo).</p>
+    <div class="rolagem"><table id="tab-falhas-res"></table></div>
+  </div>
+
+  <div class="cartao">
+    <div class="fig-cab"><div><h2>Setpoint, conformidade e economia</h2><p class="nota">Varredura do setpoint no gêmeo, regime nominal de cada lote. O gêmeo envia o menor setpoint que mantém a meta de conformidade.</p></div><button class="b peq" data-png="f7">Baixar PNG (cinza)</button></div>
+    <div class="fig" id="f7"></div>
+  </div>
+
+  <div class="cartao">
+    <div class="acoes">
+      <button class="b" id="csv">Baixar CSV das chapas simuladas</button>
+      <span class="estado">Uma linha por chapa e por forma de corte: lote, chapa, espessura final, voltas, setpoint, lâmina média, indicadores de corte mecânico, batimento e perda.</span>
+    </div>
+  </div>
+</section>
+
+<!-- ABA 3: PAINEL -->
+<section id="aba-painel" hidden>
+  <div class="cartao">
+    <h2>Painel proposto do gêmeo digital</h2>
+    <p class="nota">Proposta de painel para o gêmeo conectado à máquina, reproduzindo a simulação em tempo acelerado: indicadores de negócio, espessura das chapas, setpoint enviado pelo gêmeo e alarmes de falha.</p>
+    <div class="controle">
+      <label class="campo">Lote<select id="p-lote"></select></label>
+      <label class="campo">Mostrar<select id="p-janela">
+        <option value="300">Últimas 300 chapas</option><option value="0" selected>Lote inteiro</option>
+      </select></label>
+      <label class="campo">Velocidade<select id="p-vel">
+        <option value="100">100 vezes</option><option value="1000" selected>1.000 vezes</option><option value="10000">10.000 vezes</option>
+      </select></label>
+      <button class="b pri" id="p-play">Reproduzir</button>
+      <button class="b" id="p-fim">Ir ao fim do lote</button>
+      <label class="campo" style="flex:1; min-width:200px">Chapa <span id="p-pos"></span><input type="range" id="p-cursor" min="0" max="0" value="0"></label>
+    </div>
+  </div>
+  <div class="blocos" id="blocos-painel"></div>
+  <div class="cartao">
+    <div class="fig-cab"><div><h2>Chapas do lote</h2><p class="nota">Espessura final de cada chapa, setpoint enviado pelo gêmeo e alarmes (linhas verticais); abaixo, a lâmina média de cada chapa.</p></div><button class="b peq" data-png="fp">Baixar PNG (cinza)</button></div>
+    <div class="fig" id="fp"></div>
+  </div>
+  <div class="grade2">
+    <div class="cartao"><h2>Alarmes para o operador</h2><ul class="alarmes" id="p-alarmes"></ul></div>
+    <div class="cartao"><h2>Setpoints enviados pelo gêmeo</h2><ul class="alarmes" id="p-setpoints"></ul></div>
+  </div>
+</section>
+</main>
+<p class="rodape">Simulador de apoio a artigo científico. Dados sintéticos e parâmetros ilustrativos; o código e o PCP padrão estão no repositório. Testes de verificação: testes.html.</p>
+<div class="dica" id="dica" role="tooltip"></div>
+
+<script src="motor.js"></script>
+<script>
+'use strict';
+const $ = (s) => document.querySelector(s);
+const SVGNS = 'http://www.w3.org/2000/svg';
+let pcp = Motor.copiar(Motor.PCP_PADRAO);
+let sim = null;
+const POL = Motor.POLITICAS, NOME = Motor.NOME_POLITICA;
+
+/* ---------- formatação ---------- */
+function fmt(x, d = 1) {
+  if (x === null || x === undefined || !isFinite(x)) return '-';
+  if (Math.abs(x) < 0.5 * Math.pow(10, -d)) x = 0;
+  return x.toLocaleString('pt-BR', { minimumFractionDigits: d, maximumFractionDigits: d });
+}
+const fmt0 = (x) => fmt(x, 0);
+function fmtTempo(s) {
+  if (s === null || s === undefined) return '-';
+  const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), ss = Math.floor(s % 60);
+  return `${h} h ${String(m).padStart(2, '0')} min ${String(ss).padStart(2, '0')} s`;
+}
+function fmtLat(s) { if (s === null || s === undefined) return '-'; return s < 120 ? fmt(s, 1) + ' s' : fmt(s / 60, 1) + ' min'; }
+function esc(s) { return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+
+/* ---------- abas ---------- */
+function abrirAba(nome) {
+  document.querySelectorAll('nav.abas button').forEach(b => b.setAttribute('aria-selected', String(b.dataset.aba === nome)));
+  document.querySelectorAll('main > section').forEach(s => { s.hidden = s.id !== 'aba-' + nome; });
+  try { localStorage.setItem('gemeo-aba', nome); } catch (e) { /* armazenamento indisponível */ }
+  if (nome === 'painel') desenharPainel();
+}
+document.querySelectorAll('nav.abas button').forEach(b => b.addEventListener('click', () => abrirAba(b.dataset.aba)));
+
+/* ---------- PCP: edição ---------- */
+function camadasEsperadas(l) { return l.lamina_mm > 0 ? Math.round(l.espessura_mm / l.lamina_mm) : '-'; }
+function desenharLotes() {
+  const tb = $('#tab-lotes tbody');
+  tb.innerHTML = pcp.lotes.map((l, i) => `<tr>
+    <td>${i + 1}</td>
+    <td><input type="number" step="0.5" min="1" data-l="${i}" data-k="espessura_mm" value="${l.espessura_mm}" aria-label="Espessura do lote ${i + 1}"></td>
+    <td><input type="number" step="100" min="1" data-l="${i}" data-k="chapas" value="${l.chapas}" aria-label="Chapas do lote ${i + 1}"></td>
+    <td><input type="number" step="0.01" min="0.2" data-l="${i}" data-k="lamina_mm" value="${l.lamina_mm}" aria-label="Lâmina média do lote ${i + 1}"></td>
+    <td><input type="number" step="0.1" min="0.1" data-l="${i}" data-k="tempo_volta_s" value="${l.tempo_volta_s}" aria-label="Tempo por volta do lote ${i + 1}"></td>
+    <td><input type="number" step="1" min="1" max="49" data-l="${i}" data-k="tolerancia_pct" value="${l.tolerancia_pct}" aria-label="Tolerância do lote ${i + 1}"></td>
+    <td><select data-l="${i}" data-k="diametro_mm" aria-label="Diâmetro do lote ${i + 1}">${Motor.DIAMETROS_MM.map(d => `<option value="${d}" ${d === Number(l.diametro_mm) ? 'selected' : ''}>${d.toLocaleString('pt-BR')}</option>`).join('')}</select></td>
+    <td class="num">${camadasEsperadas(l)}</td>
+    <td><button class="x" data-del-lote="${i}" aria-label="Remover lote ${i + 1}" title="Remover">×</button></td>
+  </tr>`).join('');
+}
+function desenharFalhas() {
+  const tb = $('#tab-falhas tbody');
+  const tipos = Object.keys(Motor.FALHAS);
+  tb.innerHTML = pcp.falhas.map((f, i) => {
+    const u = Motor.FALHAS[f.tipo] ? Motor.FALHAS[f.tipo].unidade : '';
+    const semDur = u === 'lote';
+    return `<tr>
+    <td><input type="checkbox" data-f="${i}" data-k="ativa" ${f.ativa ? 'checked' : ''} aria-label="Falha ${i + 1} ativa"></td>
+    <td><select data-f="${i}" data-k="tipo" aria-label="Tipo da falha ${i + 1}">${tipos.map(t => `<option value="${t}" ${t === f.tipo ? 'selected' : ''}>${esc(Motor.FALHAS[t].nome)}</option>`).join('')}</select></td>
+    <td><input type="number" min="1" step="1" data-f="${i}" data-k="lote" value="${f.lote}" aria-label="Lote da falha ${i + 1}"></td>
+    <td><input type="number" min="0" step="1" data-f="${i}" data-k="chapa" value="${f.chapa}" ${semDur ? 'disabled' : ''} aria-label="Chapa inicial da falha ${i + 1}"></td>
+    <td><input type="number" min="0" step="1" data-f="${i}" data-k="duracao" value="${f.duracao}" ${semDur ? 'disabled' : ''} aria-label="Duração da falha ${i + 1}"></td>
+    <td class="estado">${semDur ? 'lote inteiro' : u === 's' ? 'segundos' : u}</td>
+    <td><button class="x" data-del-falha="${i}" aria-label="Remover falha ${i + 1}" title="Remover">×</button></td>
+  </tr>`; }).join('');
+}
+const CAMPOS_LAMINA = [
+  ['A₁ (mm)', 'lamina.amplitudes_mm.0', 0.001], ['A₂ (mm)', 'lamina.amplitudes_mm.1', 0.001], ['A₃ (mm)', 'lamina.amplitudes_mm.2', 0.001],
+  ['P₁ (s)', 'lamina.periodos_s.0', 1], ['P₂ (s)', 'lamina.periodos_s.1', 1], ['P₃ (s)', 'lamina.periodos_s.2', 1],
+  ['φ₁ (graus)', 'lamina.fases_graus.0', 1], ['φ₂ (graus)', 'lamina.fases_graus.1', 1], ['φ₃ (graus)', 'lamina.fases_graus.2', 1]
+];
+const CAMPOS_PARAM = [
+  ['Batimento: 1 chapa a cada', 'mecanico.batimento_cada', 1],
+  ['Lâminas extras (alternadas)', 'mecanico.laminas_extra', null],
+  ['Meta de conformidade do gêmeo (%)', 'gemeo.meta_conformidade_pct', 0.1],
+  ['Passo do setpoint (mm)', 'gemeo.passo_setpoint_mm', 0.01],
+  ['Chapas por teste no gêmeo', 'gemeo.chapas_por_teste', 50],
+  ['Reestimar o regime a cada (chapas)', 'gemeo.janela_chapas', 10],
+  ['Semente', 'semente', 1]
+];
+function lerCaminho(o, c) { return c.split('.').reduce((a, k) => a[k], o); }
+function gravarCaminho(o, c, v) { const ks = c.split('.'); const u = ks.pop(); ks.reduce((a, k) => a[k], o)[u] = v; }
+function desenharCampos() {
+  const campo = ([rot, c, passo]) => {
+    const v = lerCaminho(pcp, c);
+    if (passo === null) return `<label class="campo">${rot}<input type="text" data-p="${c}" data-lista="1" value="${v.join(', ')}"></label>`;
+    return `<label class="campo">${rot}<input type="number" step="${passo}" data-p="${c}" value="${v}"></label>`;
+  };
+  $('#campos-lamina').innerHTML = CAMPOS_LAMINA.map(campo).join('');
+  $('#campos-param').innerHTML = CAMPOS_PARAM.map(campo).join('');
+}
+function desenharPCP() { desenharLotes(); desenharFalhas(); desenharCampos(); }
+
+document.addEventListener('change', (ev) => {
+  const el = ev.target;
+  if (el.dataset.l !== undefined) {
+    const l = pcp.lotes[+el.dataset.l];
+    l[el.dataset.k] = Number(el.value);
+    desenharLotes();
+  } else if (el.dataset.f !== undefined) {
+    const f = pcp.falhas[+el.dataset.f];
+    if (el.dataset.k === 'ativa') f.ativa = el.checked;
+    else if (el.dataset.k === 'tipo') { f.tipo = el.value; if (Motor.FALHAS[f.tipo].unidade === 'lote') { f.chapa = 0; f.duracao = 0; } desenharFalhas(); }
+    else f[el.dataset.k] = Number(el.value);
+  } else if (el.dataset.p !== undefined) {
+    if (el.dataset.lista) gravarCaminho(pcp, el.dataset.p, el.value.split(/[;,\s]+/).filter(Boolean).map(Number));
+    else gravarCaminho(pcp, el.dataset.p, Number(el.value));
+  }
+});
+document.addEventListener('click', (ev) => {
+  const el = ev.target.closest('button');
+  if (!el) return;
+  if (el.dataset.delLote !== undefined && pcp.lotes.length > 1) { pcp.lotes.splice(+el.dataset.delLote, 1); desenharLotes(); }
+  if (el.dataset.delFalha !== undefined) { pcp.falhas.splice(+el.dataset.delFalha, 1); desenharFalhas(); }
+  if (el.dataset.png) exportarPNG(el.dataset.png);
+});
+$('#add-lote').addEventListener('click', () => { pcp.lotes.push(Motor.copiar(pcp.lotes[pcp.lotes.length - 1])); desenharLotes(); });
+$('#add-falha').addEventListener('click', () => { pcp.falhas.push({ tipo: 'falta_massa', lote: 1, chapa: 0, duracao: 10, ativa: true }); desenharFalhas(); });
+$('#restaurar').addEventListener('click', () => { pcp = Motor.copiar(Motor.PCP_PADRAO); desenharPCP(); executar(); });
+$('#exportar').addEventListener('click', () => baixar(new Blob([JSON.stringify(pcp, null, 2)], { type: 'application/json' }), 'pcp.json'));
+$('#importar').addEventListener('click', () => $('#arquivo').click());
+$('#arquivo').addEventListener('change', async (ev) => {
+  const f = ev.target.files[0]; if (!f) return;
+  try {
+    const novo = JSON.parse(await f.text());
+    const erros = Motor.validarPCP(Object.assign(Motor.copiar(Motor.PCP_PADRAO), novo));
+    if (erros.length) { $('#erros').innerHTML = erros.map(esc).join('<br>'); return; }
+    pcp = Object.assign(Motor.copiar(Motor.PCP_PADRAO), novo);
+    desenharPCP(); executar();
+  } catch (e) { $('#erros').textContent = 'Arquivo inválido: ' + e.message; }
+  ev.target.value = '';
+});
+$('#simular').addEventListener('click', executar);
+
+function baixar(blob, nome) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = nome;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+
+function executar() {
+  const erros = Motor.validarPCP(pcp);
+  $('#erros').innerHTML = erros.map(esc).join('<br>');
+  if (erros.length) return;
+  $('#estado').textContent = 'Simulando...';
+  $('#simular').disabled = true;
+  setTimeout(() => {
+    sim = Motor.simular(pcp);
+    $('#simular').disabled = false;
+    if (sim.erros.length) { $('#erros').innerHTML = sim.erros.map(esc).join('<br>'); return; }
+    const n = sim.res.mec.n;
+    $('#estado').textContent = `Simulado em ${fmt(sim.ms / 1000, 1)} s: ${n.toLocaleString('pt-BR')} chapas em cada uma das três formas de corte.`;
+    desenharResultados();
+    prepararPainel();
+  }, 30);
+}
+
+/* ---------- gráficos (SVG) ---------- */
+function cssv(n) { return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
+function temaTela() {
+  return {
+    fundo: cssv('--surface-1'), tinta: cssv('--text-primary'), tinta2: cssv('--text-secondary'), mudo: cssv('--muted'),
+    grade: cssv('--grid'), eixo: cssv('--axis'), faixa: cssv('--band'), setp: cssv('--text-secondary'),
+    pol: { mec: { cor: cssv('--s-mec'), traco: '', larg: 1.5 }, auto: { cor: cssv('--s-auto'), traco: '', larg: 2 }, gemeo: { cor: cssv('--s-gemeo'), traco: '', larg: 2 } },
+    seq: [1, 2, 3, 4, 5].map(i => cssv('--seq-' + i)), seqTraco: ['', '', '', '', ''],
+    status: { alerta: cssv('--warning'), serio: cssv('--serious'), critico: cssv('--critical') },
+    fonte: 'system-ui, -apple-system, Segoe UI, sans-serif'
+  };
+}
+const TEMA_IMP = {
+  fundo: '#ffffff', tinta: '#000000', tinta2: '#222222', mudo: '#555555', grade: '#e2e2e2', eixo: '#999999', faixa: 'rgba(0,0,0,0.08)', setp: '#000000',
+  pol: { mec: { cor: '#9a9a9a', traco: '', larg: 1.5 }, auto: { cor: '#000000', traco: '6 4', larg: 1.75 }, gemeo: { cor: '#000000', traco: '', larg: 2.25 } },
+  seq: ['#b5b5b5', '#8a8a8a', '#5e5e5e', '#333333', '#000000'], seqTraco: ['', '7 3', '2 3', '9 3 2 3', ''],
+  status: { alerta: '#000000', serio: '#000000', critico: '#000000' },
+  fonte: 'Arial, Helvetica, sans-serif'
+};
+function escala(d0, d1, r0, r1) {
+  const k = (r1 - r0) / ((d1 - d0) || 1);
+  const f = (v) => r0 + (v - d0) * k; f.inv = (p) => d0 + (p - r0) / k; return f;
+}
+function marcas(a, b, n) {
+  const span = (b - a) || 1, bruto = span / n, p = Math.pow(10, Math.floor(Math.log10(bruto))), e = bruto / p;
+  const passo = p * (e >= 7.5 ? 10 : e >= 3.5 ? 5 : e >= 1.5 ? 2 : 1);
+  const out = [];
+  for (let v = Math.ceil(a / passo - 1e-9) * passo; v <= b + passo * 1e-9; v += passo) out.push(Number(v.toFixed(10)));
+  return out;
+}
+function fmtEixo(v) {
+  if (Math.abs(v) >= 1000) return (v / 1000).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + ' mil';
+  return v.toLocaleString('pt-BR', { maximumFractionDigits: 2 });
+}
+function caminho(pts, sx, sy, degrau) {
+  let d = '';
+  for (let j = 0; j < pts.length; j++) {
+    const x = sx(pts[j][0]).toFixed(1), y = sy(pts[j][1]).toFixed(1);
+    if (j === 0) d += `M${x},${y}`;
+    else if (degrau) d += `H${x}V${y}`;
+    else d += `L${x},${y}`;
+  }
+  return d;
+}
+// Barra com ponta arredondada (4px) e base reta.
+function barraPath(x, w, yBase, yTopo) {
+  const r = Math.min(4, w / 2, Math.abs(yBase - yTopo));
+  if (yTopo <= yBase) return `M${x},${yBase}V${yTopo + r}Q${x},${yTopo} ${x + r},${yTopo}H${x + w - r}Q${x + w},${yTopo} ${x + w},${yTopo + r}V${yBase}Z`;
+  return `M${x},${yBase}V${yTopo - r}Q${x},${yTopo} ${x + r},${yTopo}H${x + w - r}Q${x + w},${yTopo} ${x + w},${yTopo - r}V${yBase}Z`;
+}
+function painelSVG(p, T) {
+  const m = { l: 54, r: p.margemDir || 14, t: p.titulo ? 28 : 12, b: p.tituloX ? 42 : 26 };
+  const x0 = p.x + m.l, x1 = p.x + p.w - m.r, y0 = p.y + m.t, y1 = p.y + p.h - m.b;
+  const sx = escala(p.xMin, p.xMax, x0, x1), sy = escala(p.yMin, p.yMax, y1, y0);
+  const cl = (v, a, b) => Math.max(a, Math.min(b, v));
+  let s = '';
+  if (p.titulo) s += `<text x="${x0}" y="${p.y + 17}" font-size="13" font-weight="600" fill="${T.tinta}">${esc(p.titulo)}</text>`;
+  for (const b of p.faixasY || []) {
+    const ya = sy(Math.min(b.y1, p.yMax)), yb = sy(Math.max(b.y0, p.yMin));
+    s += `<rect x="${x0}" y="${ya}" width="${x1 - x0}" height="${Math.max(0, yb - ya)}" fill="${T.faixa}"/>`;
+  }
+  for (const b of p.faixasX || []) {
+    const xa = sx(cl(b.x0, p.xMin, p.xMax)), xb = sx(cl(b.x1, p.xMin, p.xMax));
+    s += `<rect x="${xa}" y="${y0}" width="${Math.max(0, xb - xa)}" height="${y1 - y0}" fill="${T.faixa}"/>`;
+  }
+  for (const v of marcas(p.yMin, p.yMax, p.nY || 5)) {
+    const y = sy(v);
+    s += `<line x1="${x0}" x2="${x1}" y1="${y}" y2="${y}" stroke="${T.grade}" stroke-width="1"/>`;
+    s += `<text x="${x0 - 7}" y="${y + 4}" font-size="11" text-anchor="end" fill="${T.mudo}">${esc((p.fmtY || fmtEixo)(v))}</text>`;
+  }
+  s += `<line x1="${x0}" x2="${x1}" y1="${y1}" y2="${y1}" stroke="${T.eixo}" stroke-width="1"/>`;
+  for (const v of (p.xMarcas || marcas(p.xMin, p.xMax, p.nX || 6))) {
+    const x = sx(v);
+    s += `<line x1="${x}" x2="${x}" y1="${y1}" y2="${y1 + 4}" stroke="${T.eixo}" stroke-width="1"/>`;
+    s += `<text x="${x}" y="${y1 + 16}" font-size="11" text-anchor="middle" fill="${T.mudo}">${esc((p.fmtX || fmtEixo)(v))}</text>`;
+  }
+  if (p.tituloX) s += `<text x="${(x0 + x1) / 2}" y="${y1 + 34}" font-size="11.5" text-anchor="middle" fill="${T.tinta2}">${esc(p.tituloX)}</text>`;
+  if (p.tituloY) s += `<text transform="translate(${p.x + 13},${(y0 + y1) / 2}) rotate(-90)" font-size="11.5" text-anchor="middle" fill="${T.tinta2}">${esc(p.tituloY)}</text>`;
+  for (const r of p.linhasX || []) {
+    if (r.x < p.xMin || r.x > p.xMax) continue;
+    const x = sx(r.x);
+    s += `<line x1="${x}" x2="${x}" y1="${y0}" y2="${y1}" stroke="${r.cor || T.mudo}" stroke-width="${r.larg || 1}" ${r.traco ? `stroke-dasharray="${r.traco}"` : ''}/>`;
+  }
+  for (const r of p.linhasY || []) {
+    if (r.y < p.yMin || r.y > p.yMax) continue;
+    const y = sy(r.y);
+    s += `<line x1="${x0}" x2="${x1}" y1="${y}" y2="${y}" stroke="${r.cor || T.mudo}" stroke-width="${r.larg || 1}" ${r.traco ? `stroke-dasharray="${r.traco}"` : ''}/>`;
+    if (r.rotulo) s += `<text x="${x1 - 4}" y="${y - 5}" font-size="11" text-anchor="end" fill="${T.tinta2}">${esc(r.rotulo)}</text>`;
+  }
+  for (const b of p.barras || []) {
+    const xa = sx(b.x0), xb = sx(b.x1), yb = sy(0), yt = sy(b.y);
+    s += `<path d="${barraPath(xa, xb - xa, yb, yt)}" fill="${b.cor}"/>`;
+    if (b.rotulo) s += `<text x="${(xa + xb) / 2}" y="${b.y >= 0 ? yt - 5 : yt + 13}" font-size="11" text-anchor="middle" fill="${T.tinta2}">${esc(b.rotulo)}</text>`;
+  }
+  const idClip = 'c' + Math.random().toString(36).slice(2, 8);
+  s += `<clipPath id="${idClip}"><rect x="${x0}" y="${y0 - 2}" width="${x1 - x0}" height="${y1 - y0 + 4}"/></clipPath><g clip-path="url(#${idClip})">`;
+  for (const se of p.series || []) {
+    if (!se.pontos.length) continue;
+    s += `<path d="${caminho(se.pontos, sx, sy, se.degrau)}" fill="none" stroke="${se.cor}" stroke-width="${se.larg || 2}" stroke-linejoin="round" stroke-linecap="round" ${se.traco ? `stroke-dasharray="${se.traco}"` : ''}/>`;
+  }
+  s += '</g>';
+  for (const mk of p.marcadores || []) {
+    if (mk.x < p.xMin || mk.x > p.xMax) continue;
+    const x = sx(mk.x);
+    s += `<line x1="${x}" x2="${x}" y1="${y0}" y2="${y1}" stroke="${mk.cor}" stroke-width="1.5"/>`;
+    s += `<circle cx="${x}" cy="${y0 + 5}" r="4.5" fill="${mk.cor}" stroke="${T.fundo}" stroke-width="2"/>`;
+  }
+  for (const se of p.series || []) {
+    if (se.rotuloFim && se.pontos.length) {
+      const u = se.pontos[se.pontos.length - 1];
+      s += `<text x="${sx(u[0]) + 6}" y="${sy(u[1]) + 4}" font-size="11" fill="${T.tinta2}">${esc(se.rotuloFim)}</text>`;
+    }
+  }
+  return { svg: s, meta: { x0, x1, y0, y1, sx, sy, p } };
+}
+function figuraSVG(spec, T, comFundo) {
+  const { W, H } = spec;
+  let s = `<svg xmlns="${SVGNS}" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" font-family="${T.fonte}" role="img" aria-label="${esc(spec.rotulo || '')}">`;
+  if (comFundo) s += `<rect width="${W}" height="${H}" fill="${T.fundo}"/>`;
+  if (spec.legenda) {
+    let x = 54; const y = 14;
+    for (const it of spec.legenda) {
+      s += `<line x1="${x}" y1="${y}" x2="${x + 24}" y2="${y}" stroke="${it.cor}" stroke-width="${Math.max(2, it.larg || 2)}" stroke-linecap="round" ${it.traco ? `stroke-dasharray="${it.traco}"` : ''}/>`;
+      s += `<text x="${x + 30}" y="${y + 4}" font-size="12" fill="${T.tinta2}">${esc(it.nome)}</text>`;
+      x += 44 + it.nome.length * 6.4;
+    }
+  }
+  const meta = [];
+  for (const p of spec.paineis) { const r = painelSVG(p, T); s += r.svg; meta.push(r.meta); }
+  return { svg: s + '</svg>', meta };
+}
+
+/* ---------- dica ao passar o mouse ---------- */
+const dica = $('#dica');
+function ligarDica(cont, figura) {
+  cont.onmousemove = (ev) => {
+    const svg = cont.querySelector('svg'); if (!svg) return;
+    const rc = svg.getBoundingClientRect(), W = figura.W;
+    const px = (ev.clientX - rc.left) * W / rc.width, py = (ev.clientY - rc.top) * figura.H / rc.height;
+    const m = figura.meta.find(mm => px >= mm.x0 - 4 && px <= mm.x1 + 4 && py >= mm.y0 - 4 && py <= mm.y1 + 4);
+    let mira = svg.querySelector('line.mira');
+    if (!m) { dica.style.display = 'none'; if (mira) mira.remove(); return; }
+    const p = m.p, xv = m.sx.inv(px);
+    let html = '';
+    if (p.barras && p.barras.length) {
+      const b = p.barras.find(bb => xv >= bb.x0 && xv <= bb.x1);
+      if (!b) { dica.style.display = 'none'; return; }
+      html = b.dica;
+    } else {
+      if (!mira) { mira = document.createElementNS(SVGNS, 'line'); mira.setAttribute('class', 'mira'); svg.appendChild(mira); }
+      const lin = [];
+      let xr = null;
+      for (const se of p.series || []) {
+        if (se.semDica || !se.pontos.length) continue;
+        let a = 0, b = se.pontos.length - 1;
+        while (b - a > 1) { const c = (a + b) >> 1; if (se.pontos[c][0] <= xv) a = c; else b = c; }
+        const q = Math.abs(se.pontos[a][0] - xv) <= Math.abs(se.pontos[b][0] - xv) ? se.pontos[a] : se.pontos[b];
+        if (xr === null) xr = q[0];
+        lin.push(`<div class="lin"><span class="sw" style="background:${se.cor}"></span>${esc(se.nome)}: <b>${esc((p.fmtDicaY || p.fmtY || fmtEixo)(q[1]))}</b></div>`);
+      }
+      if (xr === null) { dica.style.display = 'none'; return; }
+      const xs = m.sx(xr);
+      mira.setAttribute('x1', xs); mira.setAttribute('x2', xs); mira.setAttribute('y1', m.y0); mira.setAttribute('y2', m.y1);
+      mira.setAttribute('stroke', cssv('--axis')); mira.setAttribute('stroke-width', '1');
+      html = `<div>${esc((p.fmtDicaX || p.fmtX || fmtEixo)(xr))}</div>` + lin.join('') + (p.dicaExtra ? p.dicaExtra(xr) : '');
+    }
+    dica.innerHTML = html;
+    dica.style.display = 'block';
+    const dx = ev.clientX + 14 + dica.offsetWidth > window.innerWidth ? -dica.offsetWidth - 14 : 14;
+    dica.style.left = (ev.clientX + dx) + 'px'; dica.style.top = (ev.clientY + 12) + 'px';
+  };
+  cont.onmouseleave = () => { dica.style.display = 'none'; const mi = cont.querySelector('line.mira'); if (mi) mi.remove(); };
+}
+const FIGURAS = {};
+function render(id, specFn) {
+  FIGURAS[id] = specFn;
+  const cont = document.getElementById(id);
+  const spec = specFn(temaTela());
+  const r = figuraSVG(spec, temaTela(), false);
+  cont.innerHTML = r.svg;
+  ligarDica(cont, { W: spec.W, H: spec.H, meta: r.meta });
+}
+function exportarPNG(id) {
+  const specFn = FIGURAS[id]; if (!specFn) return;
+  const spec = specFn(TEMA_IMP);
+  const { svg } = figuraSVG(spec, TEMA_IMP, true);
+  const img = new Image();
+  img.onload = () => {
+    const esc2 = 3, cv = document.createElement('canvas');
+    cv.width = spec.W * esc2; cv.height = spec.H * esc2;
+    const ctx = cv.getContext('2d');
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, cv.width, cv.height);
+    ctx.drawImage(img, 0, 0, cv.width, cv.height);
+    cv.toBlob(b => baixar(b, `${spec.arquivo || id}.png`), 'image/png');
+  };
+  img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+}
+
+/* ---------- aba 2: resultados ---------- */
+function bloco(rot, val, cmp, heroi) {
+  return `<div class="bloco"><div class="rot">${esc(rot)}</div><div class="val${heroi ? ' heroi' : ''}">${val}</div>${cmp ? `<div class="cmp">${cmp}</div>` : ''}</div>`;
+}
+function desenharResultados() {
+  const tot = sim.ind.total.pol;
+  $('#blocos-res').innerHTML =
+    bloco('Chapas economizadas com o gêmeo', fmt0(tot.gemeo.chapas_economizadas), `${fmt(tot.gemeo.economia_pct, 1)}% do material, frente ao corte mecânico; automático sem gêmeo: ${fmt0(tot.auto.chapas_economizadas)} (${fmt(tot.auto.economia_pct, 1)}%)`, true) +
+    bloco('Conformidade', fmt(tot.gemeo.conf_tol_pct, 2) + '%', `mecânico ${fmt(tot.mec.conf_tol_pct, 2)}%; automático ${fmt(tot.auto.conf_tol_pct, 2)}%`) +
+    bloco('Voltas por chapa', fmt(tot.gemeo.voltas_media, 1), `mecânico ${fmt(tot.mec.voltas_media, 1)}; automático ${fmt(tot.auto.voltas_media, 1)}`) +
+    bloco('Chapas por hora', fmt(tot.gemeo.chapas_hora, 1), `mecânico ${fmt(tot.mec.chapas_hora, 1)}; automático ${fmt(tot.auto.chapas_hora, 1)}`) +
+    bloco('Completude da trilha de eventos', fmt(tot.gemeo.completude_trilha_pct, 3) + '%', `${tot.gemeo.eventos_atrasados.toLocaleString('pt-BR')} eventos retidos na borda e entregues depois`);
+
+  let h = `<thead><tr><th>Lote</th><th>Forma de corte</th><th class="num">Conformidade</th><th class="num">Conf. 10%</th><th class="num">Conf. 5%</th><th class="num">Média (mm)</th><th class="num">Desvio (mm)</th><th class="num">Voltas</th><th class="num">Chapas/h</th><th class="num">Economia</th><th class="num">Chapas econ.</th></tr></thead><tbody>`;
+  sim.ind.lotes.forEach(o => {
+    POL.forEach((pol, j) => {
+      const p = o.pol[pol];
+      h += `<tr class="${j === 0 ? 'grupo' : ''}"><td>${j === 0 ? `${o.lote}: ${fmt(o.espessura_mm, 1)} mm, ${o.chapas.toLocaleString('pt-BR')} chapas` : ''}</td><td>${esc(NOME[pol])}</td>
+        <td class="num">${fmt(p.conf_tol_pct, 2)}%</td><td class="num">${fmt(p.conf10_pct, 1)}%</td><td class="num">${fmt(p.conf5_pct, 1)}%</td>
+        <td class="num">${fmt(p.media_mm, 2)}</td><td class="num">${fmt(p.dp_mm, 3)}</td><td class="num">${fmt(p.voltas_media, 1)}</td>
+        <td class="num">${fmt(p.chapas_hora, 1)}</td><td class="num">${pol === 'mec' ? '-' : fmt(p.economia_pct, 2) + '%'}</td><td class="num">${pol === 'mec' ? '-' : fmt0(p.chapas_economizadas)}</td></tr>`;
+    });
+  });
+  $('#tab-res').innerHTML = h + '</tbody>';
+
+  let hf = `<thead><tr><th>Falha</th><th>Lote</th><th class="num">Início (chapa)</th><th class="num">Até a detecção</th><th class="num">Chapas</th><th class="num">Fora da tol.</th></tr></thead><tbody>`;
+  if (!sim.falhas.length) hf += `<tr><td colspan="6" class="vazio">Nenhuma falha ativa.</td></tr>`;
+  sim.falhas.forEach(f => {
+    hf += `<tr><td>${iconeSev(f.sev)} ${esc(f.nome)}</td><td>${f.lote}</td><td class="num">${f.unidade === 'lote' ? '-' : f.chapa.toLocaleString('pt-BR')}</td>
+      <td class="num">${f.detectada ? fmtLat(f.latencia_s) : 'não detectada'}</td><td class="num">${f.chapas.toLocaleString('pt-BR')}</td>
+      <td class="num">${f.fora_tol.mec} / ${f.fora_tol.auto} / ${f.fora_tol.gemeo}</td></tr>`;
+  });
+  $('#tab-falhas-res').innerHTML = hf + '</tbody>';
+
+  render('f5', specF5); render('f6', specF6); render('f7', specF7);
+}
+function legPol(T, pols) { return pols.map(pol => ({ nome: NOME[pol], cor: T.pol[pol].cor, traco: T.pol[pol].traco, larg: T.pol[pol].larg })); }
+function specF5(T) {
+  const n = sim.pcp.lotes.length, cols = Math.min(n, 5), linhas = Math.ceil(n / cols);
+  const W = 1120, ph = 240, pw = (W - 10) / cols;
+  const paineis = [];
+  let ymax = 0;
+  const dados = sim.pcp.lotes.map((l, li) => {
+    const T0 = l.espessura_mm, porPol = {};
+    for (const pol of POL) {
+      const r = sim.res[pol], bins = new Map();
+      let n0 = 0;
+      for (let g = 0; g < r.n; g++) {
+        if (r.lote[g] !== li || (r.flags[g] & 4)) continue;
+        const b = Math.floor(100 * r.final[g] / T0); bins.set(b, (bins.get(b) || 0) + 1); n0++;
+      }
+      const pts = [];
+      for (let b = 80; b <= 125; b++) { const v = 100 * (bins.get(b) || 0) / Math.max(1, n0); pts.push([b, v]); ymax = Math.max(ymax, v); }
+      pts.push([126, pts[pts.length - 1][1]]);
+      porPol[pol] = pts;
+    }
+    return porPol;
+  });
+  ymax = Math.ceil(ymax / 10) * 10;
+  sim.pcp.lotes.forEach((l, li) => {
+    const c = li % cols, rr = Math.floor(li / cols);
+    paineis.push({
+      x: c * pw, y: 26 + rr * ph, w: pw, h: ph, xMin: 80, xMax: 126, yMin: 0, yMax: ymax,
+      titulo: `${fmt(l.espessura_mm, 0)} mm`, tituloX: 'espessura final (% da nominal)', tituloY: c === 0 ? '% das chapas' : '',
+      faixasX: [{ x0: 100 - l.tolerancia_pct, x1: 100 + l.tolerancia_pct + 1 }], linhasX: [{ x: 100, traco: '3 3' }],
+      xMarcas: [80, 90, 100, 110, 120], fmtX: v => v + '%', fmtY: v => v + '%', fmtDicaY: v => fmt(v, 1) + '%',
+      fmtDicaX: v => `${v}% a ${v + 1}% da nominal`,
+      series: POL.map(pol => ({ nome: NOME[pol], pontos: dados[li][pol], degrau: true, cor: T.pol[pol].cor, traco: T.pol[pol].traco, larg: T.pol[pol].larg }))
+    });
+  });
+  return { W, H: 26 + linhas * ph, legenda: legPol(T, POL), paineis, arquivo: 'figura_distribuicao_espessura', rotulo: 'Distribuição da espessura final por lote' };
+}
+function specF6(T) {
+  const lotes = sim.ind.lotes, n = lotes.length, W = 560, H = 300;
+  const grupos = lotes.map(o => ({ rot: `${fmt(o.espessura_mm, 0)} mm`, v: { auto: o.pol.auto.economia_pct, gemeo: o.pol.gemeo.economia_pct } }));
+  grupos.push({ rot: 'Total', v: { auto: sim.ind.total.pol.auto.economia_pct, gemeo: sim.ind.total.pol.gemeo.economia_pct } });
+  const ymax = Math.max(1, ...grupos.map(g => Math.max(g.v.auto, g.v.gemeo)));
+  const barras = [];
+  const larg = Math.min(0.32, 24 / ((W - 70) / grupos.length));
+  grupos.forEach((g, i) => {
+    ['auto', 'gemeo'].forEach((pol, j) => {
+      const x0 = i + 0.5 - larg - 0.01 + j * (larg + 0.02);
+      barras.push({ x0, x1: x0 + larg, y: Math.max(0, g.v[pol]), cor: T.pol[pol].cor === '#000000' && pol === 'auto' ? '#9a9a9a' : T.pol[pol].cor,
+        rotulo: fmt(g.v[pol], 1) + '%', dica: `<div>${esc(g.rot)}</div><div class="lin">${esc(NOME[pol])}: <b>${fmt(g.v[pol], 2)}%</b></div>` });
+    });
+  });
+  const leg = [{ nome: NOME.auto, cor: T === TEMA_IMP ? '#9a9a9a' : T.pol.auto.cor, larg: 8 }, { nome: NOME.gemeo, cor: T.pol.gemeo.cor, larg: 8 }];
+  return { W, H, legenda: leg, arquivo: 'figura_economia_por_lote', rotulo: 'Economia de material por lote',
+    paineis: [{ x: 0, y: 26, w: W, h: H - 26, xMin: 0, xMax: grupos.length, yMin: 0, yMax: Math.ceil(ymax * 1.2 / 2) * 2,
+      xMarcas: grupos.map((_, i) => i + 0.5), fmtX: v => grupos[Math.round(v - 0.5)] ? grupos[Math.round(v - 0.5)].rot : '',
+      fmtY: v => v + '%', tituloY: 'economia de material (%)', barras }] };
+}
+function specF7(T) {
+  const W = 1120, H = 320, lotes = sim.pcp.lotes;
+  const serie = (campo) => lotes.map((l, li) => ({
+    nome: `${fmt(l.espessura_mm, 0)} mm`, cor: T.seq[li % 5], traco: T.seqTraco[li % 5], larg: 2,
+    pontos: sim.curvas[li].map(p => [p.setpoint_pct - 100, p[campo]]),
+    rotuloFim: campo === 'economia_pct' ? null : null
+  }));
+  const tolMax = Math.max(...lotes.map(l => l.tolerancia_pct));
+  const legenda = lotes.map((l, li) => ({ nome: `${fmt(l.espessura_mm, 0)} mm`, cor: T.seq[li % 5], traco: T.seqTraco[li % 5], larg: 2 }));
+  const econMax = Math.ceil(Math.max(...sim.curvas.flat().map(p => p.economia_pct)) / 2) * 2;
+  return { W, H, legenda, arquivo: 'figura_setpoint', rotulo: 'Setpoint, conformidade e economia',
+    paineis: [
+      { x: 0, y: 26, w: W / 2, h: H - 26, xMin: -tolMax, xMax: 0, yMin: 0, yMax: 100, titulo: 'Conformidade',
+        tituloX: 'setpoint em relação à nominal (%)', tituloY: 'chapas conformes (%)', fmtX: v => (v > 0 ? '+' : '') + fmt(v, 0) + '%', fmtY: v => v + '%',
+        fmtDicaX: v => `setpoint ${fmt(100 + v, 2)}% da nominal`, fmtDicaY: v => fmt(v, 1) + '%', series: serie('conf_pct') },
+      { x: W / 2, y: 26, w: W / 2, h: H - 26, xMin: -tolMax, xMax: 0, yMin: 0, yMax: econMax, titulo: 'Economia de material',
+        tituloX: 'setpoint em relação à nominal (%)', tituloY: 'economia frente ao mecânico (%)', fmtX: v => (v > 0 ? '+' : '') + fmt(v, 0) + '%', fmtY: v => v + '%',
+        fmtDicaX: v => `setpoint ${fmt(100 + v, 2)}% da nominal`, fmtDicaY: v => fmt(v, 2) + '%', series: serie('economia_pct') }
+    ] };
+}
+function iconeSev(sev) {
+  const c = { alerta: 'var(--warning)', serio: 'var(--serious)', critico: 'var(--critical)' }[sev];
+  const forma = sev === 'critico' ? '<circle cx="8" cy="8" r="7"/>' : sev === 'serio' ? '<path d="M8 1 L15 8 L8 15 L1 8 Z"/>' : '<path d="M8 1 L15 14 L1 14 Z"/>';
+  const ink = sev === 'alerta' ? '#0b0b0b' : '#ffffff';
+  return `<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" style="vertical-align:-3px"><g fill="${c}">${forma}</g><text x="8" y="${sev === 'alerta' ? 12.5 : 11.5}" font-size="9" font-weight="700" text-anchor="middle" fill="${ink}">!</text></svg>`;
+}
+const NOME_SEV = { alerta: 'Alerta', serio: 'Sério', critico: 'Crítico' };
+
+$('#csv').addEventListener('click', () => {
+  if (!sim) return;
+  const linhas = ['lote;chapa;forma_de_corte;espessura_nominal_mm;espessura_final_mm;voltas;setpoint_mm;lamina_media_mm;corte_mecanico;batimento;perdida;tempo_fim_s'];
+  for (const pol of POL) {
+    const r = sim.res[pol];
+    for (let g = 0; g < r.n; g++) {
+      const l = sim.pcp.lotes[r.lote[g]];
+      linhas.push([r.lote[g] + 1, r.chapa[g], pol, l.espessura_mm, r.final[g].toFixed(3), r.voltas[g], r.setpoint[g].toFixed(3), r.lamina[g].toFixed(4),
+        r.flags[g] & 1 ? 1 : 0, r.flags[g] & 2 ? 1 : 0, r.flags[g] & 4 ? 1 : 0, r.tFim[g].toFixed(1)].join(';'));
+    }
+  }
+  baixar(new Blob([linhas.join('\n')], { type: 'text/csv' }), 'chapas_simuladas.csv');
+});
+
+/* ---------- aba 3: painel do gêmeo ---------- */
+const painel = { lote: 0, cursor: 0, tocando: false, relogio: null, tSim: 0 };
+function inicioLote(li) { let o = 0; for (let i = 0; i < li; i++) o += sim.pcp.lotes[i].chapas; return o; }
+function prepararPainel() {
+  const sel = $('#p-lote');
+  sel.innerHTML = sim.pcp.lotes.map((l, i) => `<option value="${i}">Lote ${i + 1}: ${fmt(l.espessura_mm, 0)} mm, ${l.chapas.toLocaleString('pt-BR')} chapas</option>`).join('');
+  sel.value = String(Math.min(painel.lote, sim.pcp.lotes.length - 1));
+  trocarLote(+sel.value, true);
+}
+function trocarLote(li, fim) {
+  painel.lote = li;
+  const n = sim.pcp.lotes[li].chapas;
+  $('#p-cursor').max = String(n);
+  painel.cursor = fim ? n : 0;
+  const o = inicioLote(li);
+  painel.tSim = painel.cursor > 0 ? sim.res.gemeo.tFim[o + painel.cursor - 1] : (o > 0 ? sim.res.gemeo.tFim[o - 1] : 0);
+  $('#p-cursor').value = String(painel.cursor);
+  desenharPainel();
+}
+$('#p-lote').addEventListener('change', (e) => { parar(); trocarLote(+e.target.value, false); });
+$('#p-cursor').addEventListener('input', (e) => {
+  parar(); painel.cursor = +e.target.value;
+  const o = inicioLote(painel.lote);
+  painel.tSim = painel.cursor > 0 ? sim.res.gemeo.tFim[o + painel.cursor - 1] : 0;
+  desenharPainel();
+});
+$('#p-fim').addEventListener('click', () => { parar(); trocarLote(painel.lote, true); });
+$('#p-janela').addEventListener('change', desenharPainel);
+$('#p-play').addEventListener('click', () => { painel.tocando ? parar() : tocar(); });
+function parar() { painel.tocando = false; clearInterval(painel.relogio); $('#p-play').textContent = 'Reproduzir'; }
+function tocar() {
+  if (!sim) return;
+  const n = sim.pcp.lotes[painel.lote].chapas;
+  if (painel.cursor >= n) trocarLote(painel.lote, false);
+  painel.tocando = true; $('#p-play').textContent = 'Pausar';
+  const o = inicioLote(painel.lote), r = sim.res.gemeo;
+  if (painel.cursor === 0) painel.tSim = o > 0 ? r.tFim[o - 1] : 0;
+  painel.relogio = setInterval(() => {
+    painel.tSim += 0.2 * Number($('#p-vel').value);
+    while (painel.cursor < n && r.tFim[o + painel.cursor] <= painel.tSim) painel.cursor++;
+    $('#p-cursor').value = String(painel.cursor);
+    desenharPainel();
+    if (painel.cursor >= n) parar();
+  }, 200);
+}
+function decimar(pts, max) {
+  if (pts.length <= max) return pts;
+  const k = Math.ceil(pts.length / (max / 2)), out = [];
+  for (let i = 0; i < pts.length; i += k) {
+    let lo = pts[i], hi = pts[i];
+    for (let j = i; j < Math.min(i + k, pts.length); j++) { if (pts[j][1] < lo[1]) lo = pts[j]; if (pts[j][1] > hi[1]) hi = pts[j]; }
+    if (lo[0] <= hi[0]) out.push(lo, hi); else out.push(hi, lo);
+  }
+  return out;
+}
+function specPainel(T) {
+  const li = painel.lote, l = sim.pcp.lotes[li], o = inicioLote(li), c = painel.cursor;
+  const jan = Number($('#p-janela').value), ini = jan ? Math.max(0, c - jan) : 0;
+  const xMin = ini, n = jan ? Math.max(ini + jan, c) : l.chapas;
+  const tol = l.tolerancia_pct / 100, Tn = l.espessura_mm;
+  const serieEsp = (pol) => { const r = sim.res[pol], pts = []; for (let i = ini; i < c; i++) pts.push([i + 1, r.final[o + i]]); return decimar(pts, 2400); };
+  const r = sim.res.gemeo;
+  const sp = []; for (let i = ini; i < c; i++) sp.push([i + 1, r.setpoint[o + i]]);
+  const lam = []; for (let i = ini; i < c; i++) lam.push([i + 1, r.lamina[o + i]]);
+  const alarmesLote = r.alarmes.filter(a => a.lote === li + 1 && a.chapa < c && a.chapa >= ini);
+  const W = 1120, H = 470, yMin = Math.floor(Tn * (1 - tol - 0.04) * 2) / 2, yMax = Math.ceil(Tn * (1 + tol + 0.2) * 2) / 2;
+  const mu = l.lamina_mm;
+  return { W, H, arquivo: `figura_painel_lote${li + 1}`, rotulo: 'Chapas do lote: espessura final, setpoint e alarmes',
+    legenda: [...legPol(T, ['mec', 'gemeo']), { nome: 'Setpoint do gêmeo', cor: T.setp, traco: '5 3', larg: 1.5 },
+      { nome: `Nominal ${fmt(Tn, 1)} mm (faixa: tolerância de ${fmt(l.tolerancia_pct, 0)}%)`, cor: T.mudo, traco: '3 3', larg: 1 }],
+    paineis: [
+      { x: 0, y: 26, w: W, h: 300, xMin, xMax: n, yMin, yMax, tituloY: 'espessura final (mm)', fmtY: v => fmt(v, 1),
+        faixasY: [{ y0: Tn * (1 - tol), y1: Tn * (1 + tol) }], linhasY: [{ y: Tn, traco: '3 3' }],
+        fmtX: v => fmtEixo(v), fmtDicaX: v => `Chapa ${Math.round(v).toLocaleString('pt-BR')}`, fmtDicaY: v => fmt(v, 2) + ' mm',
+        marcadores: alarmesLote.map(a => ({ x: a.chapa + 1, cor: T.status[a.sev] })),
+        dicaExtra: (x) => { const a = alarmesLote.find(aa => Math.abs(aa.chapa + 1 - x) < Math.max(3, n / 400)); return a ? `<div class="lin">${iconeSev(a.sev)} ${esc(a.nome)}</div>` : ''; },
+        series: [
+          { nome: NOME.mec, pontos: serieEsp('mec'), cor: T.pol.mec.cor, traco: T.pol.mec.traco, larg: 1 },
+          { nome: NOME.gemeo, pontos: serieEsp('gemeo'), cor: T.pol.gemeo.cor, traco: T.pol.gemeo.traco, larg: 1.25 },
+          { nome: 'Setpoint', pontos: decimar(sp, 2400), degrau: true, cor: T.setp, traco: '5 3', larg: 1.5 }
+        ] },
+      { x: 0, y: 326, w: W, h: 144, xMin, xMax: n, yMin: Math.floor((mu - 0.2) * 20) / 20, yMax: Math.ceil((mu + 0.2) * 20) / 20, nY: 4,
+        tituloX: 'chapa do lote', tituloY: 'lâmina (mm)', fmtY: v => fmt(v, 2), fmtDicaX: v => `Chapa ${Math.round(v).toLocaleString('pt-BR')}`, fmtDicaY: v => fmt(v, 3) + ' mm',
+        series: [{ nome: 'Lâmina média da chapa', pontos: decimar(lam, 2400), cor: T.pol.gemeo.cor, larg: 1.25 }] }
+    ] };
+}
+function desenharPainel() {
+  if (!sim || $('#aba-painel').hidden) return;
+  const li = painel.lote, l = sim.pcp.lotes[li], o = inicioLote(li), c = painel.cursor;
+  $('#p-pos').textContent = `${c.toLocaleString('pt-BR')} de ${l.chapas.toLocaleString('pt-BR')} (${fmtTempo(painel.tSim)} de produção simulada)`;
+  const T = l.espessura_mm, tol = l.tolerancia_pct / 100;
+  const acc = (pol) => {
+    const r = sim.res[pol]; let mat = 0, conf = 0, vt = 0;
+    for (let i = 0; i < c; i++) { const f = r.final[o + i]; mat += f; vt += r.voltas[o + i]; if (!(r.flags[o + i] & 4) && Math.abs(f - T) <= tol * T + 1e-9) conf++; }
+    const t0 = o > 0 ? r.tFim[o - 1] : 0, t1 = c > 0 ? r.tFim[o + c - 1] : t0;
+    return { mat, conf: c ? 100 * conf / c : null, voltas: c ? vt / c : null, ch: t1 > t0 ? c / ((t1 - t0) / 3600) : null };
+  };
+  const g = acc('gemeo'), m = acc('mec');
+  const econ = c && g.mat > 0 ? (m.mat - g.mat) / (g.mat / c) : 0, econPct = m.mat > 0 ? 100 * (1 - g.mat / m.mat) : 0;
+  const r = sim.res.gemeo;
+  const S = c > 0 ? r.setpoint[o + c - 1] : (r.setpoints.find(s => s.lote === li + 1) || {}).S;
+  const ativos = r.alarmes.filter(a => a.lote === li + 1 && a.chapa < c && a.chapa >= c - 30).length;
+  $('#blocos-painel').innerHTML =
+    bloco('Chapas economizadas no lote', fmt0(econ), `${fmt(econPct, 1)}% do material, frente ao corte mecânico`, true) +
+    bloco('Chapas produzidas', c.toLocaleString('pt-BR'), `de ${l.chapas.toLocaleString('pt-BR')} planejadas`) +
+    bloco('Conformidade', g.conf === null ? '-' : fmt(g.conf, 2) + '%', `mecânico ${m.conf === null ? '-' : fmt(m.conf, 2) + '%'}`) +
+    bloco('Voltas por chapa', g.voltas === null ? '-' : fmt(g.voltas, 1), `mecânico ${m.voltas === null ? '-' : fmt(m.voltas, 1)}`) +
+    bloco('Chapas por hora', g.ch === null ? '-' : fmt(g.ch, 1), `mecânico ${m.ch === null ? '-' : fmt(m.ch, 1)}`) +
+    bloco('Setpoint atual', S === undefined ? '-' : fmt(S, 2) + ' mm', `nominal ${fmt(T, 1)} mm; camadas esperadas ${S ? Math.round(S / l.lamina_mm) : '-'}`) +
+    bloco('Alarmes nas últimas 30 chapas', String(ativos), ativos ? 'ver a lista de alarmes abaixo' : 'operação normal');
+  const blocoAlarme = $('#blocos-painel').lastElementChild;
+  if (blocoAlarme) blocoAlarme.classList.toggle('ativo-alarme', ativos > 0);
+
+  const al = r.alarmes.filter(a => a.lote === li + 1 && a.chapa < c).slice().reverse();
+  $('#p-alarmes').innerHTML = al.length ? al.map(a => `<li>${iconeSev(a.sev)}<div><div class="tit"><span class="sev">${NOME_SEV[a.sev]}</span>${esc(a.nome)}</div>
+    <div class="det">${esc(a.msg)}</div><div class="det">Chapa ${a.chapa.toLocaleString('pt-BR')}, ${fmtTempo(a.t)}${a.latencia_s !== null ? `; detectado em ${fmtLat(a.latencia_s)}` : ''}</div></div></li>`).join('')
+    : '<li class="vazio" style="display:block">Nenhum alarme até esta chapa.</li>';
+  const sps = r.setpoints.filter(s => s.lote === li + 1 && s.chapa <= Math.max(0, c - 1)).slice().reverse();
+  $('#p-setpoints').innerHTML = sps.length ? sps.map(s => `<li><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><rect x="2" y="7" width="12" height="2" rx="1" fill="var(--text-secondary)"/></svg><div><div class="tit">${fmt(s.S, 2)} mm</div>
+    <div class="det">${esc(s.motivo)}</div><div class="det">Chapa ${s.chapa.toLocaleString('pt-BR')}, ${fmtTempo(s.t)}</div></div></li>`).join('')
+    : '<li class="vazio" style="display:block">Nenhum setpoint enviado ainda.</li>';
+  render('fp', specPainel);
+}
+
+/* ---------- início ---------- */
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+  if (!sim) return;
+  for (const id of ['f5', 'f6', 'f7']) if (FIGURAS[id]) render(id, FIGURAS[id]);
+  desenharPainel();
+});
+desenharPCP();
+let abaInicial = 'pcp';
+try { abaInicial = localStorage.getItem('gemeo-aba') || 'pcp'; } catch (e) { /* armazenamento indisponível */ }
+if (['#pcp', '#res', '#painel'].includes(location.hash)) abaInicial = location.hash.slice(1);
+if (!document.getElementById('aba-' + abaInicial)) abaInicial = 'pcp';
+executar();
+abrirAba(abaInicial);
+</script>
+</body>
+</html>
