@@ -183,7 +183,8 @@
 <section id="aba-res" hidden>
   <div class="cartao destaque">
     <h2>Entrega dos objetivos da visão de Negócio</h2>
-    <p class="nota">Objetivos de negócio do gêmeo digital e o resultado obtido nesta simulação do PCP, do corte mecanizado para o corte automático com gêmeo.</p>
+    <p class="nota">Objetivos de negócio do gêmeo digital e o resultado obtido nesta simulação do PCP, do corte mecanizado para o corte automático com gêmeo, em operação normal (sem falhas) e com as falhas do PCP.</p>
+    <div class="blocos" id="blocos-negocio"></div>
     <div class="rolagem"><table id="tab-negocio"></table></div>
     <h3>Economia por lote</h3>
     <p class="nota">Material e tempo de produção de cada lote, do corte mecanizado para o corte automático com gêmeo. Chapas economizadas: material economizado expresso em chapas da espessura do lote.</p>
@@ -728,12 +729,12 @@ function desenharNormal() {
     linhas.map((l, i) => `<tr class="${i % POL.length === 0 ? 'grupo' : ''}">${l.map((v, j) => `<td class="${j >= 2 ? 'num' : ''}">${i >= linhas.length - nTot && j >= 2 ? `<b>${esc(v)}</b>` : esc(v)}</td>`).join('')}</tr>`).join('') + '</tbody>';
 }
 // Entrega dos objetivos da visão de Negócio: [objetivo, indicador, mecanizado, com GD, variação].
-function entregaNegocio() {
-  const t = sim.ind.total.pol, m = t.mec, g = t.gemeo, lotes = sim.ind.lotes;
+function entregaNegocio(sm) {
+  const t = sm.ind.total.pol, m = t.mec, g = t.gemeo, lotes = sm.ind.lotes;
   const faixa = (pol) => { const v = lotes.map(o => o.pol[pol].dp_mm); return `${fmt(Math.min(...v), 2)} a ${fmt(Math.max(...v), 2)} mm`; };
   const dpVar = 100 * (lotes.reduce((s, o) => s + o.pol.gemeo.dp_mm / o.pol.mec.dp_mm, 0) / lotes.length - 1);
   const rel = (a, b) => (b / a - 1) * 100, sinal = (x, d = 1) => (x > 0 ? '+' : '') + fmt(x, d) + '%';
-  const det = sim.falhas.filter(f => f.detectada), lats = det.map(f => f.latencia_s).filter(x => x !== null);
+  const det = sm.falhas.filter(f => f.detectada), lats = det.map(f => f.latencia_s).filter(x => x !== null);
   return [
     ['Atender a especificação mais estreita do negócio', 'Chapas na faixa do negócio', fmt(m.conf_neg_pct, 2) + '%', fmt(g.conf_neg_pct, 2) + '%', sinal(g.conf_neg_pct - m.conf_neg_pct, 2).replace('%', ' p.p.')],
     ['Respeitar a norma', 'Chapas dentro da tolerância da norma', fmt(m.conf_tol_pct, 2) + '%', fmt(g.conf_tol_pct, 2) + '%', sinal(g.conf_tol_pct - m.conf_tol_pct, 2).replace('%', ' p.p.')],
@@ -742,7 +743,25 @@ function entregaNegocio() {
     ['Reduzir o consumo de material', 'Material frente ao corte mecanizado', 'referência', `${fmt0(g.chapas_economizadas)} chapas economizadas`, sinal(-g.economia_pct)],
     ['Reduzir o tempo de execução', 'Tempo médio de formação por chapa', fmt(3600 / m.chapas_hora, 1) + ' s', fmt(3600 / g.chapas_hora, 1) + ' s', sinal(rel(3600 / m.chapas_hora, 3600 / g.chapas_hora))],
     ['Aumentar a produtividade e o lucro', 'Chapas por hora', fmt(m.chapas_hora, 1), fmt(g.chapas_hora, 1), sinal(rel(m.chapas_hora, g.chapas_hora))],
-    ['Monitorar e detectar falhas', 'Falhas detectadas e tempo até a detecção', '-', `${det.length} de ${sim.falhas.length}` + (lats.length ? `, de ${fmtLat(Math.min(...lats))} a ${fmtLat(Math.max(...lats))}` : ''), '-']
+    ['Monitorar e detectar falhas', 'Falhas detectadas e tempo até a detecção', '-', `${det.length} de ${sm.falhas.length}` + (lats.length ? `, de ${fmtLat(Math.min(...lats))} a ${fmtLat(Math.max(...lats))}` : ''), '-']
+  ];
+}
+// Quadro de Negócio: [objetivo, indicador, mecanizado, com gêmeo, variação] em operação
+// normal e depois com as falhas do PCP; sem falhas, a detecção não se aplica.
+const CAB_NEGOCIO = ['Objetivo da visão de Negócio', 'Indicador', 'Mecanizado', 'Com gêmeo', 'Variação', 'Mecanizado', 'Com gêmeo', 'Variação'];
+const GRUPOS_NEGOCIO = ['Operação normal (sem falhas)', 'Com as falhas do PCP'];
+function quadroNegocio() {
+  const normal = entregaNegocio(simNormal), falhas = entregaNegocio(sim);
+  return falhas.map((l, i) => [l[0], l[1], ...(i === falhas.length - 1 ? ['-', '-', '-'] : normal[i].slice(2)), ...l.slice(2)]);
+}
+// Destaques do quadro de Negócio: [rótulo, valor, comparação].
+function destaquesNegocio() {
+  const n = sim.ind.lotes.reduce((s, o) => s + o.chapas, 0), esp = sim.pcp.lotes.map(l => l.espessura_mm);
+  const gN = simNormal.ind.total.pol.gemeo, gF = sim.ind.total.pol.gemeo;
+  return [
+    ['Chapas do PCP', n.toLocaleString('pt-BR'), `${sim.pcp.lotes.length} lotes, de ${fmt(Math.min(...esp), 0)} a ${fmt(Math.max(...esp), 0)} mm`],
+    ['Economia de material', fmt(gN.economia_pct, 2) + '%', `em operação normal; com as falhas do PCP: ${fmt(gF.economia_pct, 2)}%`],
+    ['Chapas economizadas', fmt0(gN.chapas_economizadas), `em operação normal; com as falhas do PCP: ${fmt0(gF.chapas_economizadas)}`]
   ];
 }
 // Economia por lote: [lote, chapas, economia de material, chapas economizadas, tempo mecanizado, tempo com gêmeo, tempo economizado].
@@ -755,9 +774,10 @@ function economiaPorLote() {
     linha('Total', n, t.mec, t.gemeo, fmt0(t.gemeo.chapas_economizadas))];
 }
 function desenharNegocio() {
-  const cab = ['Objetivo da visão de Negócio', 'Indicador', 'Mecanizado', 'Com gêmeo', 'Variação'];
-  $('#tab-negocio').innerHTML = `<thead><tr>${cab.map((c, j) => `<th class="${j >= 2 ? 'num' : ''}">${esc(c)}</th>`).join('')}</tr></thead><tbody>` +
-    entregaNegocio().map(l => `<tr>${l.map((v, j) => `<td class="${j >= 2 ? 'num' : ''}${j === 4 && v !== '-' ? ' melhora' : ''}">${esc(v)}</td>`).join('')}</tr>`).join('') + '</tbody>';
+  $('#blocos-negocio').innerHTML = destaquesNegocio().map(([rot, val, cmp]) => bloco(rot, val, cmp, true)).join('');
+  $('#tab-negocio').innerHTML = `<thead><tr><th colspan="2"></th>${GRUPOS_NEGOCIO.map(g => `<th colspan="3" class="num">${esc(g)}</th>`).join('')}</tr>` +
+    `<tr>${CAB_NEGOCIO.map((c, j) => `<th class="${j >= 2 ? 'num' : ''}">${esc(c)}</th>`).join('')}</tr></thead><tbody>` +
+    quadroNegocio().map(l => `<tr>${l.map((v, j) => `<td class="${j >= 2 ? 'num' : ''}${(j === 4 || j === 7) && v !== '-' ? ' melhora' : ''}">${esc(v)}</td>`).join('')}</tr>`).join('') + '</tbody>';
   const linhas = economiaPorLote();
   $('#tab-lotes-neg').innerHTML = `<thead><tr>${CAB_LOTES_NEG.map((c, j) => `<th class="${j >= 1 ? 'num' : ''}">${esc(c)}</th>`).join('')}</tr></thead><tbody>` +
     linhas.map((l, i) => `<tr class="${i === linhas.length - 1 ? 'grupo' : ''}">${l.map((v, j) => `<td class="${j >= 1 ? 'num' : ''}${j === 6 ? ' melhora' : ''}">${esc(v)}</td>`).join('')}</tr>`).join('') + '</tbody>';
@@ -896,14 +916,15 @@ body{font:12px/1.45 Arial,Helvetica,sans-serif;color:#000;background:#fff;margin
 h1{font-size:19px;margin:0 0 4px}h2{font-size:15px;margin:24px 0 6px;border-bottom:1px solid #888;padding-bottom:3px}h3{font-size:13px;margin:16px 0 4px}
 table{border-collapse:collapse;width:100%;margin:6px 0 10px}th,td{border-bottom:1px solid #ccc;padding:3px 6px;text-align:left;vertical-align:top}
 th{background:#efefef}.n{text-align:right;font-variant-numeric:tabular-nums}svg{width:100%;height:auto;display:block;margin:4px 0 10px}
-.nota{color:#222}.bloco{page-break-inside:avoid}.negocio{border:2px solid #000;padding:2px 12px 6px;margin:20px 0;page-break-inside:avoid}.negocio h2{margin-top:10px}@media print{body{margin:0 auto}h2{page-break-after:avoid}}
+.nota{color:#222}.bloco{page-break-inside:avoid}.negocio{border:2px solid #000;padding:2px 12px 6px;margin:20px 0;page-break-inside:avoid}.negocio h2{margin-top:10px}.destaques{display:flex;gap:10px;margin:8px 0 4px}.destaques div{flex:1;border:1px solid #888;padding:6px 10px}.destaques span{display:block;font-size:11px;color:#222}.destaques b{display:block;font-size:24px;line-height:1.2}@media print{body{margin:0 auto}h2{page-break-after:avoid}}
 </style></head><body>`;
   h += `<h1>Relatório da simulação: gêmeo digital na formação de chapas cimentícias</h1>
 <p class="nota">Gerado em ${esc(agora)}. Simulação virtual com dados sintéticos e parâmetros ilustrativos; semente ${p.semente}; ${mil(sim.res.mec.n)} chapas em cada forma de corte (corte mecanizado e corte automático com gêmeo digital).</p>`;
 
-  h += `<div class="negocio"><h2>1. Entrega dos objetivos da visão de Negócio</h2><p class="nota">Objetivos de negócio do gêmeo digital e o resultado obtido nesta simulação do PCP, do corte mecanizado para o corte automático com gêmeo.</p>` +
-    tabelaRel(['Objetivo da visão de Negócio', 'Indicador', 'Mecanizado', 'Com gêmeo', 'Variação'],
-      entregaNegocio().map(l => l.map((v, j) => j === 4 && v !== '-' ? `<b>${esc(v)}</b>` : esc(v))), [2, 3, 4]) +
+  h += `<div class="negocio"><h2>1. Entrega dos objetivos da visão de Negócio</h2><p class="nota">Objetivos de negócio do gêmeo digital e o resultado obtido nesta simulação do PCP, do corte mecanizado para o corte automático com gêmeo, em operação normal (sem falhas) e com as falhas do PCP.</p>` +
+    `<div class="destaques">${destaquesNegocio().map(([rot, val, cmp]) => `<div><span>${esc(rot)}</span><b>${esc(val)}</b><span>${esc(cmp)}</span></div>`).join('')}</div>` +
+    tabelaRel(CAB_NEGOCIO, quadroNegocio().map(l => l.map((v, j) => (j === 4 || j === 7) && v !== '-' ? `<b>${esc(v)}</b>` : esc(v))), [2, 3, 4, 5, 6, 7])
+      .replace('<thead>', `<thead><tr><th colspan="2"></th>${GRUPOS_NEGOCIO.map(g => `<th colspan="3" class="n">${esc(g)}</th>`).join('')}</tr>`) +
     `<h3>Economia por lote</h3><p class="nota">Material e tempo de produção de cada lote. Chapas economizadas: material economizado expresso em chapas da espessura do lote.</p>` +
     tabelaRel(CAB_LOTES_NEG, economiaPorLote().map(l => l.map((v, j) => j === 6 ? `<b>${esc(v)}</b>` : esc(v))), [1, 2, 3, 4, 5, 6]) + '</div>';
 
