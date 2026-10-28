@@ -21,9 +21,52 @@ Abra `index.html` no navegador, localmente ou pelo GitHub Pages do repositório.
 - **Gêmeo digital**: na troca de lote, programa o *setpoint*, o diâmetro da prensa e as camadas esperadas a partir do PCP. Para escolher o *setpoint*, simula milhares de chapas no regime estimado da lâmina e envia o menor *setpoint* que mantém a meta de conformidade, aproveitando a tolerância até o limite inferior (com margem de segurança configurável, padrão 0%). Chapas fora da tolerância são recicladas pelo controle de qualidade, com custo e perda de eficiência; por isso a meta padrão é 100% de conformidade. Reestima o regime ao longo do lote e após alarmes de processo.
 - **Falhas**: falta de massa, irregularidade da massa, densidade inadequada (massa não adere), trancos na espessura, falha do medidor, quebra da rede entre controladores, falha de energia, falha de comunicação com a nuvem e diâmetro da prensa configurado errado. O gêmeo detecta cada uma a partir dos dados recebidos e emite um alarme por episódio.
 
+## Plano de produção (PCP)
+
+O PCP é um JSON (`pcp_padrao.json`) editável na aba PCP. Espessuras em mm, tempos em s, tolerâncias em % da nominal.
+
+| Campo | Significado |
+|---|---|
+| `semente` | Semente do ruído determinístico das falhas |
+| `lotes[].espessura_mm`, `chapas` | Espessura nominal e quantidade de chapas do lote |
+| `lotes[].lamina_mm`, `tempo_volta_s` | Lâmina média (μ) e tempo por volta do cilindro |
+| `lotes[].tolerancia_pct` | Tolerância da norma (limite absoluto) |
+| `lotes[].faixa_negocio_pct` | Faixa em que a fábrica quer operar; o gêmeo posiciona o *setpoint* nela |
+| `lotes[].diametro_mm` | Diâmetro da prensa (1.660, 1.890 ou 2.050 mm) |
+| `lamina.amplitudes_mm`, `periodos_s`, `fases_graus` | Aᵢ, Pᵢ e φᵢ da variação lenta e(t) |
+| `mecanico.batimento_cada`, `laminas_extra` | Período do batimento do corte mecânico e lâminas extras, alternadas |
+| `gemeo.meta_conformidade_pct` | Conformidade mínima na faixa do negócio exigida do *setpoint* |
+| `gemeo.margem_limite_inferior_pct` | Margem do *setpoint* acima do limite inferior da faixa |
+| `gemeo.passo_setpoint_mm`, `chapas_por_teste` | Grade da busca do *setpoint* e chapas simuladas por teste |
+| `gemeo.janela_chapas` | Período de reestimativa do regime da lâmina |
+| `falhas[]` | `tipo`, `lote` (base 1), `chapa` (base 0), `duracao` (voltas, chapas ou s, conforme o tipo) e `ativa` |
+
 ## Indicadores
 
-Conformidade (tolerância do lote, 10% e 5%), espessura média e desvio-padrão, voltas por chapa, chapas por hora, horas de produção por lote, economia de material frente ao corte mecânico (em % e em chapas economizadas), tempo até a detecção de cada falha e completude da trilha de eventos.
+Calculados por lote e no total, para cada forma de corte. e: espessura final; T: nominal.
+
+| Indicador | Definição |
+|---|---|
+| Dentro da norma | Chapas com \|e − T\| ≤ tolerância · T, sobre as chapas do lote; chapas perdidas contam como fora |
+| Na faixa do negócio | Idem, com a faixa do negócio |
+| Média e desvio-padrão | De e, nas chapas não perdidas (desvio amostral) |
+| Voltas por chapa | Média das voltas até o corte |
+| Horas de produção, chapas por hora | Tempo entre o fim do lote anterior e o corte da última chapa do lote |
+| Economia de material | 1 − Σe / Σe do corte mecanizado (mesma área de chapa no lote) |
+| Chapas economizadas | (Σe mecanizado − Σe) / (Σe / chapas); no total, usa a chapa média do PCP |
+| Tempo até a detecção | Do início da falha ao primeiro alarme do gêmeo |
+| Completude da trilha | Eventos registrados / esperados (um REF e as amostras de cada volta) |
+
+## Uso do motor
+
+`motor.js` não tem dependências e funciona no navegador (`window.Motor`) ou em Node.js (`require('./motor.js')`).
+
+```js
+const r = Motor.simular(Motor.PCP_PADRAO);
+r.ind.lotes[0].pol.gemeo.economia_pct;   // economia do lote 1
+r.ind.total.pol.mec.horas;               // horas de produção do PCP, corte mecanizado
+r.res.gemeo.alarmes;                     // alarmes emitidos pelo gêmeo
+```
 
 ## Resultados do artigo
 
@@ -79,3 +122,14 @@ A simulação é determinística: a mesma semente e o mesmo PCP produzem a mesma
 | `motor.js` | Motor de simulação, sem dependências |
 | `pcp_padrao.json` | Plano de produção e cenários padrão |
 | `testes.html` | Verificação funcional do motor |
+| `resultados/` | Resultados da simulação do PCP padrão |
+| `CITATION.cff` | Metadados de citação |
+| `LICENSE` | Licença MIT |
+
+## Como citar
+
+Casagrande, E. (2026). *gemeo-ciaca: simulador do gêmeo digital na formação de chapas cimentícias* (versão 1.0.0) [Software]. <https://github.com/edcasag/gemeo-ciaca>
+
+## Licença
+
+[MIT](LICENSE).

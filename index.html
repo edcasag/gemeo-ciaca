@@ -270,6 +270,11 @@
 
 <script src="motor.js"></script>
 <script>
+/*
+ * Interface do simulador. O modelo está em motor.js; esta página edita o PCP,
+ * chama Motor.simular e apresenta os resultados.
+ * Estado global: `pcp` (plano em edição) e `sim` (última simulação).
+ */
 'use strict';
 const $ = (s) => document.querySelector(s);
 const SVGNS = 'http://www.w3.org/2000/svg';
@@ -293,7 +298,7 @@ function fmtTempo(s) {
 }
 function fmtLat(s) { if (s === null || s === undefined) return '-'; return s < 120 ? fmt(s, 1) + ' s' : fmt(s / 60, 1) + ' min'; }
 function escPuro(s) { return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
-// Termos estrangeiros em itálico, como pede a norma de redação.
+// Termos estrangeiros em itálico.
 const ESTRANGEIROS = /\b(setpoints?|fuzzy)\b/gi;
 function esc(s) { return escPuro(s).replace(ESTRANGEIROS, '<em>$1</em>'); }
 function escSvg(s) { return escPuro(s).replace(ESTRANGEIROS, '<tspan font-style="italic">$1</tspan>'); }
@@ -368,6 +373,7 @@ function desenharCampos() {
 }
 function desenharPCP() { desenharLotes(); desenharFalhas(); desenharCampos(); }
 
+// data-l/data-k: lote e campo; data-f/data-k: falha e campo; data-p: caminho no PCP.
 document.addEventListener('change', (ev) => {
   const el = ev.target;
   if (el.dataset.l !== undefined) {
@@ -416,6 +422,7 @@ function baixar(blob, nome) {
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }
 
+// setTimeout: atualiza o estado na tela antes do cálculo, que bloqueia por ~1 s.
 function executar() {
   const erros = Motor.validarPCP(pcp);
   $('#erros').innerHTML = erros.map(esc).join('<br>');
@@ -434,6 +441,10 @@ function executar() {
 }
 
 /* ---------- gráficos (SVG) ---------- */
+// Cada figura é uma função spec(T) do tema T que devolve
+// { W, H, legenda, paineis, arquivo, rotulo }; cada painel tem posição, domínio,
+// títulos e, opcionalmente, series, barras, faixasX/Y, linhasX/Y e marcadores.
+// A mesma spec gera a figura da tela, o PNG e o SVG do relatório.
 function cssv(n) { return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
 function temaTela() {
   return {
@@ -445,6 +456,7 @@ function temaTela() {
     fonte: 'system-ui, -apple-system, Segoe UI, sans-serif'
   };
 }
+// Tema de impressão: escala de cinza, diferenciando as séries pelo traço.
 const TEMA_IMP = {
   fundo: '#ffffff', tinta: '#000000', tinta2: '#222222', mudo: '#555555', grade: '#e2e2e2', eixo: '#999999', faixa: 'rgba(0,0,0,0.08)', setp: '#000000', setpTraco: '7 2 2 2',
   pol: { mec: { cor: '#9a9a9a', traco: '', larg: 1.5 }, auto: { cor: '#000000', traco: '6 4', larg: 1.75 }, gemeo: { cor: '#000000', traco: '', larg: 2.25 } },
@@ -490,6 +502,7 @@ function barraPath(x, w, yBase, yTopo) {
   if (yTopo <= yBase) return `M${x},${yBase}V${yTopo + r}Q${x},${yTopo} ${x + r},${yTopo}H${x + w - r}Q${x + w},${yTopo} ${x + w},${yTopo + r}V${yBase}Z`;
   return `M${x},${yBase}V${yTopo - r}Q${x},${yTopo} ${x + r},${yTopo}H${x + w - r}Q${x + w},${yTopo} ${x + w},${yTopo - r}V${yBase}Z`;
 }
+// Desenha um painel; devolve o SVG e as escalas, usadas pela dica do mouse.
 function painelSVG(p, T) {
   const m = { l: 54, r: p.margemDir || 14, t: p.titulo ? 28 : 12, b: p.tituloX ? 42 : 26 };
   const x0 = p.x + m.l, x1 = p.x + p.w - m.r, y0 = p.y + m.t, y1 = p.y + p.h - m.b;
@@ -555,6 +568,7 @@ function painelSVG(p, T) {
   }
   return { svg: s, meta: { x0, x1, y0, y1, sx, sy, p } };
 }
+// Figura completa: legenda no topo e painéis; comFundo para PNG e relatório.
 function figuraSVG(spec, T, comFundo) {
   const { W, H } = spec;
   let s = `<svg xmlns="${SVGNS}" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" font-family="${T.fonte}" role="img" aria-label="${escPuro(spec.rotulo || '')}">`;
@@ -715,6 +729,8 @@ function desenharNegocio() {
     linhas.map((l, i) => `<tr class="${i === linhas.length - 1 ? 'grupo' : ''}">${l.map((v, j) => `<td class="${j >= 1 ? 'num' : ''}${j === 6 ? ' melhora' : ''}">${esc(v)}</td>`).join('')}</tr>`).join('') + '</tbody>';
 }
 function legPol(T, pols) { return pols.map(pol => ({ nome: NOME[pol], cor: T.pol[pol].cor, traco: T.pol[pol].traco, larg: T.pol[pol].larg })); }
+// Distribuição da espessura final por lote: histograma em faixas de 1% da
+// nominal, com a tolerância da norma sombreada e a faixa do negócio pontilhada.
 function specF5(T) {
   const n = sim.pcp.lotes.length, cols = Math.min(n, 5), linhas = Math.ceil(n / cols);
   const W = 1120, ph = 240, pw = (W - 10) / cols;
@@ -835,6 +851,7 @@ function tabelaRel(cab, linhas, numericas = []) {
     (linhas.length ? linhas.map(l => `<tr>${l.map((v, j) => cel(v, j, 'td')).join('')}</tr>`).join('') : `<tr><td colspan="${cab.length}">Nenhum registro.</td></tr>`) +
     '</tbody></table>';
 }
+// Relatório autocontido em HTML, com as figuras em SVG cinza.
 function gerarRelatorio() {
   const T = TEMA_IMP, svg = (spec) => figuraSVG(spec, T, true).svg;
   const p = sim.pcp, tot = sim.ind.total.pol, agora = new Date().toLocaleString('pt-BR');
@@ -914,6 +931,7 @@ $('#relatorio').addEventListener('click', () => {
 });
 
 /* ---------- aba 3: painel do gêmeo ---------- */
+// Reprodução de um lote já simulado: cursor = chapas concluídas, tSim = instante simulado.
 const painel = { lote: 0, cursor: 0, tocando: false, relogio: null, tSim: 0 };
 function inicioLote(li) { let o = 0; for (let i = 0; i < li; i++) o += sim.pcp.lotes[i].chapas; return o; }
 function prepararPainel() {
@@ -958,6 +976,7 @@ function tocar() {
     if (painel.cursor >= n) parar();
   }, 200);
 }
+// Decimação min/máx por trecho, para cerca de `max` pontos.
 function decimar(pts, max) {
   if (pts.length <= max) return pts;
   const k = Math.ceil(pts.length / (max / 2)), out = [];

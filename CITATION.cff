@@ -1,0 +1,24 @@
+cff-version: 1.2.0
+title: "gemeo-ciaca: simulador do gêmeo digital na formação de chapas cimentícias"
+message: "Para citar este software, utilize os metadados abaixo."
+authors:
+  - family-names: Casagrande
+    given-names: Edson
+type: software
+version: "1.0.0"
+license: MIT
+url: "https://edcasag.github.io/gemeo-ciaca/"
+repository-code: "https://github.com/edcasag/gemeo-ciaca"
+keywords:
+  - "digital twin"
+  - "gêmeo digital"
+  - "RM-ODP"
+  - "fiber cement"
+  - "event-driven simulation"
+abstract: >-
+  Simulador em JavaScript, executado no navegador, de uma máquina de formação
+  de chapas cimentícias por acúmulo de lâminas. Compara o corte mecanizado com
+  o corte automático cujo setpoint e configuração são ajustados por um gêmeo
+  digital, com falhas de processo e de sistema injetadas, e calcula
+  conformidade, economia de material, tempo de produção e tempo até a
+  detecção das falhas.

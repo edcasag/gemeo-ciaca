@@ -12,6 +12,11 @@
  *
  * Determinístico: a mesma semente produz a mesma saída. Sem dependências.
  * Funciona no navegador (window.Motor) e em CommonJS (module.exports).
+ *
+ * Uso: const r = Motor.simular(Motor.PCP_PADRAO);
+ *      r.ind.lotes[0].pol.gemeo.economia_pct, r.ind.total.pol.gemeo.horas
+ *
+ * Unidades: espessuras em mm, tempos em s, tolerâncias em % da nominal.
  */
 (function (raiz, fabrica) {
   const M = fabrica();
@@ -20,8 +25,10 @@
 })(typeof self !== 'undefined' ? self : this, function () {
   'use strict';
 
+  // PCP padrão (campos descritos no README); pcp_padrao.json é uma cópia.
   const PCP_PADRAO = {
     semente: 1,
+    // e(t) = lamina_mm + Σ Aᵢ sen(2πt/Pᵢ + φᵢ)
     lamina: {
       amplitudes_mm: [0.040, 0.008, 0.002],
       periodos_s: [960, 480, 240],
@@ -38,6 +45,7 @@
     ],
     mecanico: { batimento_cada: 20, laminas_extra: [1, 2] },
     gemeo: { meta_conformidade_pct: 100, margem_limite_inferior_pct: 0, passo_setpoint_mm: 0.05, chapas_por_teste: 400, janela_chapas: 50 },
+    // lote em base 1, chapa em base 0; duração na unidade FALHAS[tipo].unidade.
     falhas: [
       { tipo: 'falta_massa',    lote: 1, chapa: 1000, duracao: 20,  ativa: true },
       { tipo: 'rede',           lote: 1, chapa: 3000, duracao: 5,   ativa: true },
@@ -208,7 +216,7 @@
     return Math.round(a * passo * 1000) / 1000;
   }
 
-  // Varredura do setpoint no gêmeo, regime nominal do lote (Figura 7).
+  // Varredura do setpoint no gêmeo, regime nominal do lote.
   function curvaSetpoint(pcp, li) {
     const l = pcp.lotes[li], T = l.espessura_mm, tol = l.tolerancia_pct / 100;
     const amp = amplitudeNominal(pcp), pts = [];
@@ -225,6 +233,10 @@
     return Math.sqrt(v.reduce((s, x) => s + (x - m) * (x - m), 0) / (v.length - 1));
   }
 
+  // Simula o PCP inteiro em uma forma de corte, volta a volta; em 'gemeo', com
+  // monitoramento, alarmes e envio de setpoint. Vetores indexados pela chapa global g.
+  // flags: bit 0 corte mecânico, bit 1 batimento, bit 2 chapa perdida.
+  // Voltas da chapa g: espVolta[v0[g] .. v0[g + 1] - 1].
   function simularPolitica(pcp, pol) {
     const total = pcp.lotes.reduce((s, l) => s + (l.chapas | 0), 0);
     const r = {
@@ -425,6 +437,8 @@
     return r;
   }
 
+  // Indicadores por lote e totais (definições no README). Material: soma das
+  // espessuras finais, base de economia_pct e chapas_economizadas.
   function indicadores(pcp, res) {
     const lotes = pcp.lotes.map((l, li) => {
       const o = { lote: li + 1, espessura_mm: l.espessura_mm, chapas: l.chapas, pol: {} };
@@ -512,6 +526,7 @@
     return saida;
   }
 
+  // Retorna { pcp, res: {mec, auto, gemeo}, ind: {lotes, total}, curvas, falhas, ms, erros }.
   function simular(pcpEntrada) {
     const pcp = copiar(pcpEntrada);
     const erros = validarPCP(pcp);
