@@ -70,9 +70,23 @@ r.res.gemeo.alarmes;                     // alarmes emitidos pelo gêmeo
 
 ## Resultados do artigo
 
-A simulação do PCP padrão (`pcp_padrao.json`, semente 1), com 26.000 chapas em cinco lotes, compara o corte mecanizado e o corte automático com gêmeo.
+A simulação do PCP padrão (`pcp_padrao.json`, semente 1), com 26.000 chapas em cinco lotes, compara o corte mecanizado e o corte automático com gêmeo em dois cenários: operação normal (o mesmo PCP sem falhas) e com as falhas do PCP.
 
 ### Entrega dos objetivos da visão de Negócio
+
+Operação normal (sem falhas):
+
+| Objetivo | Indicador | Mecanizado | Com gêmeo | Variação |
+|---|---|---:|---:|---:|
+| Atender a especificação mais estreita do negócio | Chapas na faixa do negócio | 91,04% | 100,00% | **+8,96 p.p.** |
+| Respeitar a norma | Chapas dentro da tolerância da norma | 98,37% | 100,00% | **+1,63 p.p.** |
+| Melhorar o alinhamento entre chapas | Desvio-padrão da espessura final por lote | 0,26 a 0,28 mm | 0,17 a 0,19 mm | **−32,5%** (média) |
+| Reduzir camadas por chapa | Voltas por chapa | 28,2 | 26,9 | **−4,8%** |
+| Reduzir o consumo de material | Material frente ao corte mecanizado | referência | 1.260 chapas economizadas | **−4,8%** |
+| Reduzir o tempo de execução | Tempo médio de formação por chapa | 42,3 s | 40,3 s | **−4,8%** |
+| Aumentar a produtividade e o lucro | Chapas por hora | 85,1 | 89,4 | **+5,0%** |
+
+Com as falhas do PCP:
 
 | Objetivo | Indicador | Mecanizado | Com gêmeo | Variação |
 |---|---|---:|---:|---:|
@@ -88,6 +102,19 @@ A simulação do PCP padrão (`pcp_padrao.json`, semente 1), com 26.000 chapas e
 ### Economia por lote
 
 Material e tempo de produção de cada lote, do corte mecanizado para o corte automático com gêmeo. Chapas economizadas: material economizado expresso em chapas da espessura do lote; o total é a soma dos lotes.
+
+Operação normal (sem falhas):
+
+| Lote | Chapas | Economia de material | Chapas economizadas | Tempo mecanizado | Tempo com gêmeo | Tempo economizado |
+|---|---:|---:|---:|---:|---:|---:|
+| 8 mm | 5.000 | 3,73% | 194 | 28,9 h | 27,8 h | **1,1 h** |
+| 12 mm | 8.000 | 4,76% | 400 | 68,7 h | 65,4 h | **3,3 h** |
+| 20 mm | 8.000 | 4,76% | 400 | 112,9 h | 107,6 h | **5,4 h** |
+| 25 mm | 3.000 | 5,04% | 159 | 52,8 h | 50,1 h | **2,7 h** |
+| 30 mm | 2.000 | 5,10% | 107 | 42,2 h | 40,0 h | **2,1 h** |
+| Total | 26.000 | 4,76% | 1.260 | 305,4 h | 290,9 h | **14,5 h** |
+
+Com as falhas do PCP:
 
 | Lote | Chapas | Economia de material | Chapas economizadas | Tempo mecanizado | Tempo com gêmeo | Tempo economizado |
 |---|---:|---:|---:|---:|---:|---:|
@@ -105,8 +132,8 @@ Relatório completo, para abrir no navegador: <https://edcasag.github.io/gemeo-c
 | Arquivo | Conteúdo |
 |---|---|
 | `resultados/relatorio_simulacao_padrao.html` | Relatório completo: PCP, parâmetros, entrega dos objetivos da visão de Negócio, economia por lote, indicadores, tabelas por lote, figuras, falhas, alarmes e *setpoints* enviados |
-| `resultados/resumo_por_lote.csv` | Indicadores por lote e forma de corte, com horas de produção e o total |
-| `resultados/chapas_simuladas.zip` | CSV com uma linha por chapa simulada (52.000 linhas) |
+| `resultados/resumo_por_lote.csv` | Indicadores por cenário (operação normal e com falhas), lote e forma de corte, com horas de produção e o total |
+| `resultados/chapas_simuladas.zip` | Dois CSV com uma linha por chapa simulada (52.000 linhas cada): `chapas_simuladas.csv` (com as falhas do PCP) e `chapas_simuladas_operacao_normal.csv` (sem falhas) |
 
 Os mesmos arquivos são gerados pela página (aba Resultados: "Baixar relatório da simulação" e "Baixar CSV das chapas simuladas").
 
