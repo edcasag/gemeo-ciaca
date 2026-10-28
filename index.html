@@ -711,14 +711,13 @@ function entregaNegocio() {
   ];
 }
 // Economia por lote: [lote, chapas, economia de material, chapas economizadas, tempo mecanizado, tempo com gêmeo, tempo economizado].
-// No total, chapas de espessuras diferentes não se somam; a coluna fica sem valor.
 const CAB_LOTES_NEG = ['Lote', 'Chapas', 'Economia de material', 'Chapas economizadas', 'Tempo mecanizado', 'Tempo com gêmeo', 'Tempo economizado'];
 function economiaPorLote() {
   const h = (x) => fmt(x, 1) + ' h';
   const linha = (rot, n, m, g, econ) => [rot, n.toLocaleString('pt-BR'), fmt(g.economia_pct, 2) + '%', econ, h(m.horas), h(g.horas), h(m.horas - g.horas)];
   const t = sim.ind.total.pol, n = sim.ind.lotes.reduce((s, o) => s + o.chapas, 0);
   return [...sim.ind.lotes.map(o => linha(`${fmt(o.espessura_mm, 0)} mm`, o.chapas, o.pol.mec, o.pol.gemeo, fmt0(o.pol.gemeo.chapas_economizadas))),
-    linha('Total', n, t.mec, t.gemeo, '-')];
+    linha('Total', n, t.mec, t.gemeo, fmt0(t.gemeo.chapas_economizadas))];
 }
 function desenharNegocio() {
   const cab = ['Objetivo da visão de Negócio', 'Indicador', 'Mecanizado', 'Com gêmeo', 'Variação'];

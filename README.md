@@ -53,7 +53,7 @@ Calculados por lote e no total, para cada forma de corte. e: espessura final; T:
 | Voltas por chapa | Média das voltas até o corte |
 | Horas de produção, chapas por hora | Tempo entre o fim do lote anterior e o corte da última chapa do lote |
 | Economia de material | 1 − Σe / Σe do corte mecanizado (mesma área de chapa no lote) |
-| Chapas economizadas | (Σe mecanizado − Σe) / (Σe / chapas); no total, usa a chapa média do PCP |
+| Chapas economizadas | (Σe mecanizado − Σe) / (Σe / chapas), por lote; o total é a soma dos lotes |
 | Tempo até a detecção | Do início da falha ao primeiro alarme do gêmeo |
 | Completude da trilha | Eventos registrados / esperados (um REF e as amostras de cada volta) |
 
@@ -80,14 +80,14 @@ A simulação do PCP padrão (`pcp_padrao.json`, semente 1), com 26.000 chapas e
 | Respeitar a norma | Chapas dentro da tolerância da norma | 98,36% | 100,00% | **+1,63 p.p.** |
 | Melhorar o alinhamento entre chapas | Desvio-padrão da espessura final por lote | 0,26 a 0,28 mm | 0,17 a 0,19 mm | **−31,8%** (média) |
 | Reduzir camadas por chapa | Voltas por chapa | 28,2 | 26,9 | **−4,8%** |
-| Reduzir o consumo de material | Material frente ao corte mecanizado | referência | 1.297 chapas economizadas | **−4,8%** |
+| Reduzir o consumo de material | Material frente ao corte mecanizado | referência | 1.258 chapas economizadas | **−4,8%** |
 | Reduzir o tempo de execução | Tempo médio de formação por chapa | 42,3 s | 40,3 s | **−4,8%** |
 | Aumentar a produtividade e o lucro | Chapas por hora | 85,0 | 89,3 | **+5,0%** |
 | Monitorar e detectar falhas | Falhas detectadas e tempo até a detecção | - | 9 de 9, de 0,5 s a 60 s | - |
 
 ### Economia por lote
 
-Material e tempo de produção de cada lote, do corte mecanizado para o corte automático com gêmeo. Chapas economizadas: material economizado expresso em chapas da espessura do lote; no total, chapas de espessuras diferentes não se somam.
+Material e tempo de produção de cada lote, do corte mecanizado para o corte automático com gêmeo. Chapas economizadas: material economizado expresso em chapas da espessura do lote; o total é a soma dos lotes.
 
 | Lote | Chapas | Economia de material | Chapas economizadas | Tempo mecanizado | Tempo com gêmeo | Tempo economizado |
 |---|---:|---:|---:|---:|---:|---:|
@@ -96,7 +96,7 @@ Material e tempo de produção de cada lote, do corte mecanizado para o corte au
 | 20 mm | 8.000 | 4,76% | 400 | 113,1 h | 107,7 h | **5,4 h** |
 | 25 mm | 3.000 | 5,03% | 159 | 52,9 h | 50,3 h | **2,6 h** |
 | 30 mm | 2.000 | 5,10% | 107 | 42,2 h | 40,0 h | **2,1 h** |
-| Total | 26.000 | 4,75% | - | 305,8 h | 291,2 h | **14,5 h** |
+| Total | 26.000 | 4,75% | 1.258 | 305,8 h | 291,2 h | **14,5 h** |
 
 Relatório completo, para abrir no navegador: <https://edcasag.github.io/gemeo-ciaca/resultados/relatorio_simulacao_padrao.html>
 

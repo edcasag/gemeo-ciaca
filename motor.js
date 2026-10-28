@@ -473,7 +473,7 @@
       for (const pol of POLITICAS) {
         const p = o.pol[pol], m = o.pol.mec.material_mm;
         p.economia_pct = 100 * (1 - p.material_mm / m);
-        p.chapas_economizadas = (m - p.material_mm) / (p.material_mm / l.chapas);
+        p.chapas_economizadas = Math.round((m - p.material_mm) / (p.material_mm / l.chapas));
       }
       return o;
     });
@@ -492,8 +492,8 @@
     for (const pol of POLITICAS) {
       const p = total.pol[pol], m = total.pol.mec.material_mm;
       p.economia_pct = 100 * (1 - p.material_mm / m);
-      const n = lotes.reduce((s, o) => s + o.chapas, 0);
-      p.chapas_economizadas = (m - p.material_mm) / (p.material_mm / n);
+      // Soma dos lotes: cada lote converte o material na chapa da sua espessura.
+      p.chapas_economizadas = lotes.reduce((s, o) => s + o.pol[pol].chapas_economizadas, 0);
     }
     return { lotes, total };
   }
