@@ -143,7 +143,7 @@
 
   <div class="cartao">
     <h2>Cenários de falha</h2>
-    <p class="nota">Falhas injetadas na simulação, aplicadas igualmente ao corte mecanizado e ao automático com gêmeo. O gêmeo detecta cada uma e emite alarme para o operador.</p>
+    <p class="nota">Falhas injetadas na simulação, aplicadas igualmente ao corte mecanizado e ao automático com gêmeo. O gêmeo detecta cada uma e emite alarme para o operador. O mesmo PCP é simulado também sem falhas, como cenário de operação normal.</p>
     <div class="rolagem">
       <table id="tab-falhas">
         <thead><tr><th>Ativa</th><th>Falha</th><th>Lote</th><th>Chapa inicial</th><th>Duração</th><th></th><th></th></tr></thead>
@@ -198,6 +198,12 @@
     </div>
   </div>
   <div class="blocos" id="blocos-res"></div>
+
+  <div class="cartao">
+    <h2>Operação normal (sem falhas)</h2>
+    <p class="nota">O mesmo PCP simulado sem nenhuma falha. Chapas por classe de espessura final: na faixa do negócio; fora dela, mas dentro da tolerância da norma; e fora da norma. Desvio médio: espessura final menos a nominal.</p>
+    <div class="rolagem"><table id="tab-normal"></table></div>
+  </div>
 
   <div class="cartao">
     <div class="fig-cab"><div><h2>Figura do artigo</h2><p class="nota">Uma figura em quatro partes, lote de 20 mm: (a) chapas em formação, (b) dispersão da espessura final, (c) economia por espessura (todos os lotes) e (d) lâmina e alarmes do gêmeo.</p></div><div class="acoes"><button class="b peq" data-png="fart" data-cor="1">Baixar PNG (cor)</button><button class="b peq" data-png="fart">Baixar PNG (cinza)</button></div></div>
@@ -279,7 +285,7 @@
 const $ = (s) => document.querySelector(s);
 const SVGNS = 'http://www.w3.org/2000/svg';
 let pcp = Motor.copiar(Motor.PCP_PADRAO);
-let sim = null;
+let sim = null, simNormal = null;   // simNormal: mesmo PCP sem falhas (operação normal)
 // A página compara o corte mecanizado com o automático com gêmeo. O motor também
 // simula o automático sem ajuste do setpoint, usado só na verificação (testes.html).
 const POL = ['mec', 'gemeo'], NOME = Motor.NOME_POLITICA;
@@ -431,10 +437,11 @@ function executar() {
   $('#simular').disabled = true;
   setTimeout(() => {
     sim = Motor.simular(pcp);
+    simNormal = sim.erros.length ? null : Motor.simular(Object.assign(Motor.copiar(pcp), { falhas: [] }));
     $('#simular').disabled = false;
     if (sim.erros.length) { $('#erros').innerHTML = sim.erros.map(esc).join('<br>'); return; }
     const n = sim.res.mec.n;
-    $('#estado').textContent = `Simulado em ${fmt(sim.ms / 1000, 1)} s: ${n.toLocaleString('pt-BR')} chapas no corte mecanizado e no automático com gêmeo.`;
+    $('#estado').textContent = `Simulado em ${fmt((sim.ms + simNormal.ms) / 1000, 1)} s: ${n.toLocaleString('pt-BR')} chapas no corte mecanizado e no automático com gêmeo, com as falhas e em operação normal.`;
     desenharResultados();
     prepararPainel();
   }, 30);
@@ -688,8 +695,37 @@ function desenharResultados() {
   });
   $('#tab-falhas-res').innerHTML = hf + '</tbody>';
 
+  desenharNormal();
   desenharNegocio();
   render('f5', specF5); render('f6', specF6); render('fart', specArtigo);
+}
+// Operação normal (PCP sem falhas): [lote, forma de corte, na faixa do negócio, só na norma,
+// fora da norma, desvio médio, voltas, chapas/h, economia, chapas economizadas], por lote e total.
+const CAB_NORMAL = ['Lote', 'Forma de corte', 'Na faixa do negócio', 'Só na norma', 'Fora da norma', 'Desvio médio (mm)', 'Voltas', 'Chapas/h', 'Economia', 'Chapas econ.'];
+function operacaoNormal() {
+  const ind = simNormal.ind, linhas = [];
+  const classes = (n, p) => {
+    const neg = Math.round(p.conf_neg_pct * n / 100), tol = Math.round(p.conf_tol_pct * n / 100);
+    const c = (k) => `${k.toLocaleString('pt-BR')} (${fmt(100 * k / n, 1)}%)`;
+    return [c(neg), c(tol - neg), c(n - tol)];
+  };
+  const econ = (pol, p) => pol === 'mec' ? ['-', '-'] : [fmt(p.economia_pct, 2) + '%', fmt0(p.chapas_economizadas)];
+  ind.lotes.forEach(o => POL.forEach((pol, j) => {
+    const p = o.pol[pol];
+    linhas.push([j === 0 ? `${o.lote}: ${fmt(o.espessura_mm, 0)} mm, ${o.chapas.toLocaleString('pt-BR')} chapas` : '', NOME[pol],
+      ...classes(o.chapas, p), (p.media_mm >= o.espessura_mm ? '+' : '') + fmt(p.media_mm - o.espessura_mm, 2), fmt(p.voltas_media, 1), fmt(p.chapas_hora, 1), ...econ(pol, p)]);
+  }));
+  const n = ind.lotes.reduce((s, o) => s + o.chapas, 0);
+  POL.forEach((pol, j) => {
+    const p = ind.total.pol[pol];
+    linhas.push([j === 0 ? `Total: ${n.toLocaleString('pt-BR')} chapas` : '', NOME[pol], ...classes(n, p), '-', fmt(p.voltas_media, 1), fmt(p.chapas_hora, 1), ...econ(pol, p)]);
+  });
+  return linhas;
+}
+function desenharNormal() {
+  const linhas = operacaoNormal(), nTot = POL.length;
+  $('#tab-normal').innerHTML = `<thead><tr>${CAB_NORMAL.map((c, j) => `<th class="${j >= 2 ? 'num' : ''}">${esc(c)}</th>`).join('')}</tr></thead><tbody>` +
+    linhas.map((l, i) => `<tr class="${i % POL.length === 0 ? 'grupo' : ''}">${l.map((v, j) => `<td class="${j >= 2 ? 'num' : ''}">${i >= linhas.length - nTot && j >= 2 ? `<b>${esc(v)}</b>` : esc(v)}</td>`).join('')}</tr>`).join('') + '</tbody>';
 }
 // Entrega dos objetivos da visão de Negócio: [objetivo, indicador, mecanizado, com GD, variação].
 function entregaNegocio() {
@@ -891,6 +927,9 @@ th{background:#efefef}.n{text-align:right;font-variant-numeric:tabular-nums}svg{
     ['Economia de material', '-', fmt(tot.gemeo.economia_pct, 2) + '%'],
     ['Chapas economizadas', '-', fmt0(tot.gemeo.chapas_economizadas)]
   ], [1, 2]);
+
+  h += `<h3>Operação normal (sem falhas)</h3><p class="nota">O mesmo PCP simulado sem nenhuma falha. Chapas por classe de espessura final: na faixa do negócio; fora dela, mas dentro da tolerância da norma; e fora da norma. Desvio médio: espessura final menos a nominal.</p>` +
+    tabelaRel(CAB_NORMAL, operacaoNormal().map(l => l.map(esc)), [2, 3, 4, 5, 6, 7, 8, 9]);
 
   const linhasLote = [];
   sim.ind.lotes.forEach(o => POL.forEach((pol, j) => {

@@ -7,7 +7,7 @@ Simulador virtual que acompanha um artigo sobre a modelagem de um gêmeo digital
 Abra `index.html` no navegador, localmente ou pelo GitHub Pages do repositório. Não há nada a instalar.
 
 1. **PCP**: edite os lotes do plano de produção (espessura nominal, chapas, lâmina média, tempo por volta, tolerância, diâmetro da prensa), os cenários de falha e os parâmetros. Clique em **Simular**.
-2. **Resultados**: quadro de entrega dos objetivos da visão de Negócio (faixa do negócio, norma, alinhamento, camadas, material, tempo de execução, produtividade e falhas), economia de material e de tempo de produção por lote, comparação por lote entre o corte mecanizado e o corte automático com gêmeo, figuras exportáveis em PNG (escala de cinza), falhas detectadas, relatório completo da simulação (HTML para imprimir ou salvar em PDF) e CSV das chapas simuladas.
+2. **Resultados**: quadro de entrega dos objetivos da visão de Negócio (faixa do negócio, norma, alinhamento, camadas, material, tempo de execução, produtividade e falhas), economia de material e de tempo de produção por lote, comparação por lote entre o corte mecanizado e o corte automático com gêmeo, operação normal (o mesmo PCP simulado sem falhas, com as chapas na faixa do negócio, só na norma e fora da norma), figuras exportáveis em PNG (escala de cinza), falhas detectadas, relatório completo da simulação (HTML para imprimir ou salvar em PDF) e CSV das chapas simuladas.
 3. **Painel do gêmeo**: proposta de painel para o gêmeo conectado à máquina, com reprodução acelerada, indicadores de negócio, *setpoint* enviado e alarmes para o operador.
 
 `testes.html` executa a verificação funcional do motor e mostra um resumo dos resultados.
@@ -20,6 +20,7 @@ Abra `index.html` no navegador, localmente ou pelo GitHub Pages do repositório.
 - **Por que o gêmeo**: um corte automático bem ajustado não tem como ser superado; a dificuldade é manter o ajuste à mão a cada troca de lote, mudança de regime da massa ou falha. O gêmeo faz esse ajuste de forma contínua, e a economia apresentada é a do automático com gêmeo frente ao corte mecanizado.
 - **Gêmeo digital**: na troca de lote, programa o *setpoint*, o diâmetro da prensa e as camadas esperadas a partir do PCP. Para escolher o *setpoint*, simula milhares de chapas no regime estimado da lâmina e envia o menor *setpoint* que mantém a meta de conformidade, aproveitando a tolerância até o limite inferior (com margem de segurança configurável, padrão 0%). Chapas fora da tolerância são recicladas pelo controle de qualidade, com custo e perda de eficiência; por isso a meta padrão é 100% de conformidade. Reestima o regime ao longo do lote e após alarmes de processo.
 - **Falhas**: falta de massa, irregularidade da massa, densidade inadequada (massa não adere), trancos na espessura, falha do medidor, quebra da rede entre controladores, falha de energia, falha de comunicação com a nuvem e diâmetro da prensa configurado errado. O gêmeo detecta cada uma a partir dos dados recebidos e emite um alarme por episódio.
+- **Operação normal**: o PCP é simulado também sem falhas, como cenário de referência. Mesmo sem falhas, o corte mecanizado deixa chapas acima da faixa do negócio, pela variação da lâmina e pelo batimento.
 
 ## Plano de produção (PCP)
 
