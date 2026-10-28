@@ -6,7 +6,16 @@ authors:
     given-names: Edson
 type: software
 version: "1.0.0"
+date-released: "2026-10-28"
 license: MIT
+doi: "10.5281/zenodo.23744862"
+identifiers:
+  - type: doi
+    value: "10.5281/zenodo.23744862"
+    description: "DOI conceito: aponta para a versão mais recente"
+  - type: doi
+    value: "10.5281/zenodo.23744863"
+    description: "DOI da versão 1.0.0"
 url: "https://edcasag.github.io/gemeo-ciaca/"
 repository-code: "https://github.com/edcasag/gemeo-ciaca"
 keywords:

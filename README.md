@@ -1,5 +1,7 @@
 # Gêmeo digital na formação de chapas cimentícias: simulador
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23744862.svg)](https://doi.org/10.5281/zenodo.23744862)
+
 Simulador virtual que acompanha um artigo sobre a modelagem de um gêmeo digital para uma máquina de formação de chapas cimentícias por acúmulo de lâminas em um cilindro formador. A máquina, o corte mecânico, o corte automático do controlador e o gêmeo digital são simulados, sem conexão com equipamento real. Os dados são sintéticos e os parâmetros, ilustrativos.
 
 ## Como usar
@@ -155,7 +157,25 @@ A simulação é determinística: a mesma semente e o mesmo PCP produzem a mesma
 
 ## Como citar
 
-Casagrande, E. (2026). *gemeo-ciaca: simulador do gêmeo digital na formação de chapas cimentícias* (versão 1.0.0) [Software]. <https://github.com/edcasag/gemeo-ciaca>
+Versão 1.0.0 (resultados do artigo):
+
+```text
+Casagrande, E. (2026). gemeo-ciaca: simulador do gêmeo digital na formação de chapas cimentícias (versão 1.0.0) [Software]. Zenodo. https://doi.org/10.5281/zenodo.23744863
+```
+
+```bibtex
+@software{casagrande2026gemeo,
+  author    = {Casagrande, Edson},
+  title     = {gemeo-ciaca: simulador do gêmeo digital na formação de chapas cimentícias},
+  version   = {1.0.0},
+  year      = 2026,
+  publisher = {Zenodo},
+  doi       = {10.5281/zenodo.23744863},
+  url       = {https://doi.org/10.5281/zenodo.23744863}
+}
+```
+
+Versão mais recente (DOI conceito): <https://doi.org/10.5281/zenodo.23744862>
 
 ## Licença
 
