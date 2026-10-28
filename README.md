@@ -7,7 +7,7 @@ Simulador virtual que acompanha um artigo sobre a modelagem de um gêmeo digital
 Abra `index.html` no navegador, localmente ou pelo GitHub Pages do repositório. Não há nada a instalar.
 
 1. **PCP**: edite os lotes do plano de produção (espessura nominal, chapas, lâmina média, tempo por volta, tolerância, diâmetro da prensa), os cenários de falha e os parâmetros. Clique em **Simular**.
-2. **Resultados**: quadro de entrega dos objetivos da visão de Negócio (faixa do negócio, norma, alinhamento, camadas, material, tempo de execução, produtividade e falhas), comparação por lote entre o corte mecanizado e o corte automático com gêmeo, figuras exportáveis em PNG (escala de cinza), falhas detectadas, relatório completo da simulação (HTML para imprimir ou salvar em PDF) e CSV das chapas simuladas.
+2. **Resultados**: quadro de entrega dos objetivos da visão de Negócio (faixa do negócio, norma, alinhamento, camadas, material, tempo de execução, produtividade e falhas), economia de material e de tempo de produção por lote, comparação por lote entre o corte mecanizado e o corte automático com gêmeo, figuras exportáveis em PNG (escala de cinza), falhas detectadas, relatório completo da simulação (HTML para imprimir ou salvar em PDF) e CSV das chapas simuladas.
 3. **Painel do gêmeo**: proposta de painel para o gêmeo conectado à máquina, com reprodução acelerada, indicadores de negócio, *setpoint* enviado e alarmes para o operador.
 
 `testes.html` executa a verificação funcional do motor e mostra um resumo dos resultados.
@@ -23,7 +23,7 @@ Abra `index.html` no navegador, localmente ou pelo GitHub Pages do repositório.
 
 ## Indicadores
 
-Conformidade (tolerância do lote, 10% e 5%), espessura média e desvio-padrão, voltas por chapa, chapas por hora, economia de material frente ao corte mecânico (em % e em chapas economizadas), tempo até a detecção de cada falha e completude da trilha de eventos.
+Conformidade (tolerância do lote, 10% e 5%), espessura média e desvio-padrão, voltas por chapa, chapas por hora, horas de produção por lote, economia de material frente ao corte mecânico (em % e em chapas economizadas), tempo até a detecção de cada falha e completude da trilha de eventos.
 
 ## Resultados do artigo
 
@@ -42,14 +42,27 @@ A simulação do PCP padrão (`pcp_padrao.json`, semente 1), com 26.000 chapas e
 | Aumentar a produtividade e o lucro | Chapas por hora | 85,0 | 89,3 | **+5,0%** |
 | Monitorar e detectar falhas | Falhas detectadas e tempo até a detecção | - | 9 de 9, de 0,5 s a 60 s | - |
 
+### Economia por lote
+
+Material e tempo de produção de cada lote, do corte mecanizado para o corte automático com gêmeo. Chapas economizadas: material economizado expresso em chapas da espessura do lote; no total, chapas de espessuras diferentes não se somam.
+
+| Lote | Chapas | Economia de material | Chapas economizadas | Tempo mecanizado | Tempo com gêmeo | Tempo economizado |
+|---|---:|---:|---:|---:|---:|---:|
+| 8 mm | 5.000 | 3,74% | 194 | 28,9 h | 27,8 h | **1,1 h** |
+| 12 mm | 8.000 | 4,74% | 398 | 68,7 h | 65,4 h | **3,3 h** |
+| 20 mm | 8.000 | 4,76% | 400 | 113,1 h | 107,7 h | **5,4 h** |
+| 25 mm | 3.000 | 5,03% | 159 | 52,9 h | 50,3 h | **2,6 h** |
+| 30 mm | 2.000 | 5,10% | 107 | 42,2 h | 40,0 h | **2,1 h** |
+| Total | 26.000 | 4,75% | - | 305,8 h | 291,2 h | **14,5 h** |
+
 Relatório completo, para abrir no navegador: <https://edcasag.github.io/gemeo-ciaca/resultados/relatorio_simulacao_padrao.html>
 
 ### Arquivos de resultados
 
 | Arquivo | Conteúdo |
 |---|---|
-| `resultados/relatorio_simulacao_padrao.html` | Relatório completo: PCP, parâmetros, entrega dos objetivos da visão de Negócio, indicadores, tabelas por lote, figuras, falhas, alarmes e *setpoints* enviados |
-| `resultados/resumo_por_lote.csv` | Indicadores por lote e forma de corte, com o total |
+| `resultados/relatorio_simulacao_padrao.html` | Relatório completo: PCP, parâmetros, entrega dos objetivos da visão de Negócio, economia por lote, indicadores, tabelas por lote, figuras, falhas, alarmes e *setpoints* enviados |
+| `resultados/resumo_por_lote.csv` | Indicadores por lote e forma de corte, com horas de produção e o total |
 | `resultados/chapas_simuladas.zip` | CSV com uma linha por chapa simulada (52.000 linhas) |
 
 Os mesmos arquivos são gerados pela página (aba Resultados: "Baixar relatório da simulação" e "Baixar CSV das chapas simuladas").

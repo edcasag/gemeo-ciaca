@@ -451,7 +451,7 @@
           conf10_pct: 100 * c10 / n, conf5_pct: 100 * c5 / n, conf_tol_pct: 100 * cTol / n, conf_neg_pct: 100 * cNeg / n,
           media_mm: vals.reduce((s, x) => s + x, 0) / Math.max(1, vals.length),
           dp_mm: desvioPadrao(vals), voltas_media: vt / n,
-          chapas_hora: horas > 0 ? n / horas : 0, material_mm: mat,
+          chapas_hora: horas > 0 ? n / horas : 0, horas, material_mm: mat,
           material_por_conforme_mm: cTol ? mat / cTol : null,
           refugo: n - cTol, perdidas, corte_mecanico: mec
         };
@@ -470,7 +470,7 @@
       lotes.forEach(o => { const p = o.pol[pol]; mat += p.material_mm; conf += p.conf_tol_pct * o.chapas / 100; confNeg += p.conf_neg_pct * o.chapas / 100; vt += p.voltas_media * o.chapas; n += o.chapas; });
       total.pol[pol] = {
         material_mm: mat, conf_tol_pct: 100 * conf / n, conf_neg_pct: 100 * confNeg / n, voltas_media: vt / n,
-        chapas_hora: n / (r.tTotal / 3600),
+        chapas_hora: n / (r.tTotal / 3600), horas: r.tTotal / 3600,
         completude_trilha_pct: 100 * r.eventos.registrados / r.eventos.esperados,
         eventos_atrasados: r.eventos.atrasados
       };
