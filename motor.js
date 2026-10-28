@@ -247,7 +247,6 @@
       lamina: new Float32Array(total), flags: new Uint8Array(total),
       v0: new Uint32Array(total + 1),   // índice da primeira volta de cada chapa em espVolta
       alarmes: [], setpoints: [], refs: 0,
-      eventos: { esperados: 0, registrados: 0, atrasados: 0 },
       deteccoes: {}
     };
     const porLote = falhasPorLote(pcp), semente = pcp.semente | 0;
@@ -334,9 +333,6 @@
             if (f.tipo === 'medidor' && dentro(f, i)) { med = 0; medOk = false; }
             if (f.tipo === 'rede' && dentro(f, i)) { medOk = false; chegou = false; }
           }
-          r.eventos.esperados += 1 + aps;
-          r.eventos.registrados += 1 + (chegou ? aps : 0);
-          if (t <= nuvemAte) r.eventos.atrasados += 1 + (chegou ? aps : 0);
           if (pol === 'gemeo' && !nuvemAlarmada && nuvemAte > 0 && nuvemInicio + PRAZO_NUVEM_S <= Math.min(t, nuvemAte)) {
             nuvemAlarmada = true;
             alarmar('nuvem', nuvemInicio + PRAZO_NUVEM_S, li, i, 'Espelho na nuvem desatualizado (idade do dado acima de 60 s); eventos retidos na borda', r._falhaNuvem, nuvemInicio);
@@ -484,9 +480,7 @@
       lotes.forEach(o => { const p = o.pol[pol]; mat += p.material_mm; conf += p.conf_tol_pct * o.chapas / 100; confNeg += p.conf_neg_pct * o.chapas / 100; vt += p.voltas_media * o.chapas; n += o.chapas; });
       total.pol[pol] = {
         material_mm: mat, conf_tol_pct: 100 * conf / n, conf_neg_pct: 100 * confNeg / n, voltas_media: vt / n,
-        chapas_hora: n / (r.tTotal / 3600), horas: r.tTotal / 3600,
-        completude_trilha_pct: 100 * r.eventos.registrados / r.eventos.esperados,
-        eventos_atrasados: r.eventos.atrasados
+        chapas_hora: n / (r.tTotal / 3600), horas: r.tTotal / 3600
       };
     }
     for (const pol of POLITICAS) {

@@ -59,7 +59,6 @@
     let somaV = 0, minF = Infinity;
     for (let g = 0; g < r.n; g++) { somaV += r.voltas[g]; minF = Math.min(minF, r.final[g]); }
     verifica(`Invariante (${pol}): um REF por volta`, r.refs === somaV, r.refs + ' REF, ' + somaV + ' voltas');
-    verifica(`Invariante (${pol}): trilha completa sem falhas`, r.eventos.registrados === r.eventos.esperados);
     verifica(`Invariante (${pol}): espessura final positiva`, minF > 0);
   }
   verifica('Sem falhas: gêmeo 100% conforme em todos os lotes', r2.ind.lotes.every(o => o.pol.gemeo.conf_tol_pct === 100),
@@ -99,7 +98,7 @@
   linhas.push('', `Simulação do PCP padrão: ${res.ms.toFixed(0)} ms`);
   for (const pol of Motor.POLITICAS) {
     const p = res.ind.total.pol[pol];
-    linhas.push(`${Motor.NOME_POLITICA[pol].padEnd(20)} conf ${fmt(p.conf_tol_pct)}%  voltas ${fmt(p.voltas_media)}  chapas/h ${fmt(p.chapas_hora, 1)}  economia ${fmt(p.economia_pct)}% (${fmt(p.chapas_economizadas, 0)} chapas)  trilha ${fmt(p.completude_trilha_pct, 3)}%  atrasados ${p.eventos_atrasados}`);
+    linhas.push(`${Motor.NOME_POLITICA[pol].padEnd(20)} conf ${fmt(p.conf_tol_pct)}%  voltas ${fmt(p.voltas_media)}  chapas/h ${fmt(p.chapas_hora, 1)}  economia ${fmt(p.economia_pct)}% (${fmt(p.chapas_economizadas, 0)} chapas)`);
   }
   linhas.push('', 'Por lote (mec | auto | gêmeo): conformidade, média, dp, voltas, economia');
   res.ind.lotes.forEach(o => {

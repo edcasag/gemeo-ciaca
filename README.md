@@ -55,7 +55,6 @@ Calculados por lote e no total, para cada forma de corte. e: espessura final; T:
 | Economia de material | 1 − Σe / Σe do corte mecanizado (mesma área de chapa no lote) |
 | Chapas economizadas | (Σe mecanizado − Σe) / (Σe / chapas), por lote; o total é a soma dos lotes |
 | Tempo até a detecção | Do início da falha ao primeiro alarme do gêmeo |
-| Completude da trilha | Eventos registrados / esperados (um REF e as amostras de cada volta) |
 
 ## Uso do motor
 

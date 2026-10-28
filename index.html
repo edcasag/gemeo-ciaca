@@ -665,8 +665,7 @@ function desenharResultados() {
     bloco('Chapas economizadas com o gêmeo', fmt0(tot.gemeo.chapas_economizadas), `${fmt(tot.gemeo.economia_pct, 1)}% do material, automático com gêmeo frente ao mecanizado`, true) +
     bloco('Dentro da norma', fmt(tot.gemeo.conf_tol_pct, 2) + '%', `mecânico ${fmt(tot.mec.conf_tol_pct, 2)}%; na faixa do negócio: ${fmt(tot.gemeo.conf_neg_pct, 2)}% (mecânico ${fmt(tot.mec.conf_neg_pct, 2)}%)`) +
     bloco('Voltas por chapa', fmt(tot.gemeo.voltas_media, 1), `mecânico ${fmt(tot.mec.voltas_media, 1)}`) +
-    bloco('Chapas por hora', fmt(tot.gemeo.chapas_hora, 1), `mecânico ${fmt(tot.mec.chapas_hora, 1)}`) +
-    bloco('Completude da trilha de eventos', fmt(tot.gemeo.completude_trilha_pct, 3) + '%', `${tot.gemeo.eventos_atrasados.toLocaleString('pt-BR')} eventos retidos na borda e entregues depois`);
+    bloco('Chapas por hora', fmt(tot.gemeo.chapas_hora, 1), `mecânico ${fmt(tot.mec.chapas_hora, 1)}`);
 
   let h = `<thead><tr><th>Lote</th><th>Forma de corte</th><th class="num">Dentro da norma</th><th class="num">Na faixa do negócio</th><th class="num">Média (mm)</th><th class="num">Desvio (mm)</th><th class="num">Voltas</th><th class="num">Chapas/h</th><th class="num">Economia</th><th class="num">Chapas econ.</th></tr></thead><tbody>`;
   sim.ind.lotes.forEach(o => {
@@ -890,9 +889,7 @@ th{background:#efefef}.n{text-align:right;font-variant-numeric:tabular-nums}svg{
     ['Voltas por chapa', fmt(tot.mec.voltas_media, 1), fmt(tot.gemeo.voltas_media, 1)],
     ['Chapas por hora', fmt(tot.mec.chapas_hora, 1), fmt(tot.gemeo.chapas_hora, 1)],
     ['Economia de material', '-', fmt(tot.gemeo.economia_pct, 2) + '%'],
-    ['Chapas economizadas', '-', fmt0(tot.gemeo.chapas_economizadas)],
-    ['Completude da trilha de eventos', fmt(tot.mec.completude_trilha_pct, 3) + '%', fmt(tot.gemeo.completude_trilha_pct, 3) + '%'],
-    ['Eventos retidos na borda e entregues depois', mil(tot.mec.eventos_atrasados), mil(tot.gemeo.eventos_atrasados)]
+    ['Chapas economizadas', '-', fmt0(tot.gemeo.chapas_economizadas)]
   ], [1, 2]);
 
   const linhasLote = [];
